@@ -44,5 +44,5 @@ Conforme os requisitos da disciplina, o projeto está segregado nos seguintes di
 * `/database`: Scripts de configuração e persistência.
 
 ---
-**Professor:** Cap Vanzan 
-**Instituição:** Instituto Militar de Engenharia (IME)
+* **Professor:** Cap Vanzan 
+* **Instituição:** Instituto Militar de Engenharia (IME)
