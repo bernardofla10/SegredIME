@@ -1,6 +1,6 @@
 # SegredIME - Sistema de Gestão de Criptografia e Cofre de Senhas
 
-[cite_start]Projeto desenvolvido para a disciplina de **Laboratório de Programação III** do curso de **Engenharia de Computação** no 1º Período de 2026[cite: 5, 6, 12, 13].
+Projeto desenvolvido para a disciplina de **Laboratório de Programação III** do curso de **Engenharia de Computação** no 1º Período de 2026[cite: 5, 6, 12, 13].
 
 ## 📋 Descrição do Sistema
 O **SegredIME** é uma solução distribuída voltada para a custódia e gerenciamento de segredos digitais (senhas, chaves de API e certificados) com foco estrito em segurança de dados e auditoria de acessos. A plataforma utiliza criptografia em nível de aplicação para garantir que informações sensíveis permaneçam confidenciais desde a persistência no banco de dados até o consumo pelo usuário final.
@@ -36,7 +36,7 @@ O projeto é construído sob uma arquitetura **API-first**, garantindo a integra
 
 ## 📂 Estrutura do Repositório
 
-[cite_start]Conforme os requisitos da disciplina[cite: 146], o projeto está segregado nos seguintes diretórios:
+Conforme os requisitos da disciplina, o projeto está segregado nos seguintes diretórios:
 
 * `/backend`: API e lógica de negócio.
 * `/frontend`: Interface administrativa Web.
@@ -44,5 +44,5 @@ O projeto é construído sob uma arquitetura **API-first**, garantindo a integra
 * `/database`: Scripts de configuração e persistência.
 
 ---
-[cite_start]**Professor:** Cap Vanzan [cite: 4]  
-[cite_start]**Instituição:** Instituto Militar de Engenharia (IME) [cite: 1]
+**Professor:** Cap Vanzan 
+**Instituição:** Instituto Militar de Engenharia (IME)
