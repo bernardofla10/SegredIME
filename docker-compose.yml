@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: segredime_postgres
+    environment:
+      POSTGRES_DB: segredime_local
+      POSTGRES_USER: segredime_user
+      POSTGRES_PASSWORD: segredime_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U segredime_user -d segredime_local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - segredime_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: segredime_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - segredime_network
+
+  frontend:
+    # mockup do serviço
+    image: nginx:alpine
+    container_name: segredime_frontend
+    ports:
+      - "3000:80"
+    networks:
+      - segredime_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  segredime_network:
+    driver: bridge

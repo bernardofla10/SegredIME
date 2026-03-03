@@ -38,10 +38,32 @@ O projeto é construído sob uma arquitetura **API-first**, garantindo a integra
 
 Conforme os requisitos da disciplina, o projeto está segregado nos seguintes diretórios:
 
-* `/backend`: API e lógica de negócio.
-* `/frontend`: Interface administrativa Web.
+* `/backend`: API e lógica de negócio. (Configurado via Docker)
+* `/frontend`: Interface administrativa Web. (Mockado via Docker)
 * `/mobile`: Aplicativo de segurança e MFA.
-* `/database`: Scripts de configuração e persistência.
+* `/database`: Scripts de configuração e persistência. (PostgreSQL via Docker)
+
+## 🐳 Executando o Ambiente de Desenvolvimento
+
+O ambiente completo do projeto está empacotado e orquestrado através do Docker Compose, garantindo que todos os serviços fiquem de pé e totalmente configurados com um simples comando. Os serviços atualmente provisionados e suas respectivas portas são:
+
+* **PostgreSQL (Database):** Porta `5432` 
+* **Backend API (Django + Uvicorn):** Porta `8000` 
+* **Frontend Web (Nginx/Mock):** Porta `3000`
+
+### Como Subir o Ambiente
+No terminal, a partir do diretório raiz do projeto (`SegredIME`), execute:
+```bash
+docker compose up -d
+```
+Todos os serviços serão construídos (se necessário) e iniciados em segundo plano.
+
+### Como Derrubar o Ambiente
+Para desligar o ambiente e parar os containers, execute o comando:
+```bash
+docker compose down
+```
+_Nota: Este comando apenas finaliza os serviços, mas as portas e dados nos volumes (ex: banco de dados) serão mantidos até rodar o comando com a flag `-v`._
 
 ---
 * **Professor:** Cap Vanzan 
