@@ -65,53 +65,53 @@ docker compose down
 ```
 _Nota: Este comando apenas finaliza os serviços, mas as portas e dados nos volumes (ex: banco de dados) serão mantidos até rodar o comando com a flag `-v`._
 
-## 🔌 API Endpoints (Rudimentary Version)
+## 🔌 Endpoints da API (Versão Rudimentar)
 
-The current backend is in a rudimentary phase. It exposes basic mockup endpoints for database operations related to **Clients** and **Secrets**. These endpoints currently have no active functionality (e.g., business logic, authentication, or encryption) and only return mocked responses.
+O backend atual encontra-se em uma fase rudimentar. Ele expõe endpoints básicos de mockup para operações de banco de dados relacionadas a **Clientes** e **Secrets**. Atualmente, esses endpoints não possuem funcionalidade ativa (ex: lógica de negócio, autenticação ou criptografia) e retornam apenas respostas simuladas (*mocked*).
 
-### Clients
+### Clientes
 
 * `GET /api/clients/`
-  * **Description**: Retrieve a list of all registered clients.
-  * **Status**: Mocked. Returns a static list of dummy clients.
+  * **Descrição**: Recupera uma lista de todos os clientes registrados.
+  * **Status**: Mocked. Retorna uma lista estática de clientes fictícios.
   
 * `GET /api/clients/{id}/`
-  * **Description**: Retrieve details of a specific client by its ID.
-  * **Status**: Mocked. Returns details of a dummy client.
+  * **Descrição**: Recupera detalhes de um cliente específico através do seu ID.
+  * **Status**: Mocked. Retorna detalhes de um cliente fictício.
 
 * `POST /api/clients/`
-  * **Description**: Create a new client record in the database.
-  * **Status**: Mocked. Accepts client payloads but does not persist them. Returns a success message.
+  * **Descrição**: Cria um novo registro de cliente no banco de dados.
+  * **Status**: Mocked. Aceita *payloads* de clientes, mas não os persiste. Retorna uma mensagem de sucesso.
 
 * `PUT /api/clients/{id}/`
-  * **Description**: Update an existing client's information.
-  * **Status**: Mocked. Accepts updated data but does not perform the actual update in the database.
+  * **Descrição**: Atualiza as informações de um cliente existente.
+  * **Status**: Mocked. Aceita dados atualizados, mas não realiza a atualização real no banco de dados.
 
 * `DELETE /api/clients/{id}/`
-  * **Description**: Delete a client from the system.
-  * **Status**: Mocked. Returns a success response but performs no real deletion.
+  * **Descrição**: Exclui um cliente do sistema.
+  * **Status**: Mocked. Retorna uma resposta de sucesso, mas não executa a exclusão real.
 
 ### Secrets
 
 * `GET /api/secrets/`
-  * **Description**: Retrieve a list of all stored secrets.
-  * **Status**: Mocked. Returns a dummy list of secrets without any actual decryption.
+  * **Descrição**: Recupera uma lista de todos os *secrets* armazenados.
+  * **Status**: Mocked. Retorna uma lista fictícia de *secrets* sem realizar descriptografia real.
   
 * `GET /api/secrets/{id}/`
-  * **Description**: Retrieve a specific secret's details by its ID.
-  * **Status**: Mocked. Returns a mocked secret.
+  * **Descrição**: Recupera os detalhes de um *secret* específico pelo seu ID.
+  * **Status**: Mocked. Retorna um *secret* simulado.
   
 * `POST /api/secrets/`
-  * **Description**: Store a new secret in the vault.
-  * **Status**: Mocked. Accepts secret data (e.g., title, value) but does not encrypt or save it. Returns a placeholder success response.
+  * **Descrição**: Armazena um novo *secret* no cofre (*vault*).
+  * **Status**: Mocked. Aceita dados do *secret* (ex: título, valor), mas não os criptografa ou salva. Retorna uma resposta de sucesso genérica.
 
 * `PUT /api/secrets/{id}/`
-  * **Description**: Update an existing secret.
-  * **Status**: Mocked. Accepts the new secret data but does not process it. Returns a success confirmation.
+  * **Descrição**: Atualiza um *secret* existente.
+  * **Status**: Mocked. Aceita os novos dados do *secret*, mas não os processa. Retorna uma confirmação de sucesso.
 
 * `DELETE /api/secrets/{id}/`
-  * **Description**: Remove a specific secret from the vault.
-  * **Status**: Mocked. Simulates deletion and returns a success response.
+  * **Descrição**: Remove um *secret* específico do cofre (*vault*).
+  * **Status**: Mocked. Simula a exclusão e retorna uma resposta de sucesso.
 
 ---
 * **Professor:** Cap Vanzan 
