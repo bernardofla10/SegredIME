@@ -65,6 +65,54 @@ docker compose down
 ```
 _Nota: Este comando apenas finaliza os serviços, mas as portas e dados nos volumes (ex: banco de dados) serão mantidos até rodar o comando com a flag `-v`._
 
+## 🔌 API Endpoints (Rudimentary Version)
+
+The current backend is in a rudimentary phase. It exposes basic mockup endpoints for database operations related to **Clients** and **Secrets**. These endpoints currently have no active functionality (e.g., business logic, authentication, or encryption) and only return mocked responses.
+
+### Clients
+
+* `GET /api/clients/`
+  * **Description**: Retrieve a list of all registered clients.
+  * **Status**: Mocked. Returns a static list of dummy clients.
+  
+* `GET /api/clients/{id}/`
+  * **Description**: Retrieve details of a specific client by its ID.
+  * **Status**: Mocked. Returns details of a dummy client.
+
+* `POST /api/clients/`
+  * **Description**: Create a new client record in the database.
+  * **Status**: Mocked. Accepts client payloads but does not persist them. Returns a success message.
+
+* `PUT /api/clients/{id}/`
+  * **Description**: Update an existing client's information.
+  * **Status**: Mocked. Accepts updated data but does not perform the actual update in the database.
+
+* `DELETE /api/clients/{id}/`
+  * **Description**: Delete a client from the system.
+  * **Status**: Mocked. Returns a success response but performs no real deletion.
+
+### Secrets
+
+* `GET /api/secrets/`
+  * **Description**: Retrieve a list of all stored secrets.
+  * **Status**: Mocked. Returns a dummy list of secrets without any actual decryption.
+  
+* `GET /api/secrets/{id}/`
+  * **Description**: Retrieve a specific secret's details by its ID.
+  * **Status**: Mocked. Returns a mocked secret.
+  
+* `POST /api/secrets/`
+  * **Description**: Store a new secret in the vault.
+  * **Status**: Mocked. Accepts secret data (e.g., title, value) but does not encrypt or save it. Returns a placeholder success response.
+
+* `PUT /api/secrets/{id}/`
+  * **Description**: Update an existing secret.
+  * **Status**: Mocked. Accepts the new secret data but does not process it. Returns a success confirmation.
+
+* `DELETE /api/secrets/{id}/`
+  * **Description**: Remove a specific secret from the vault.
+  * **Status**: Mocked. Simulates deletion and returns a success response.
+
 ---
 * **Professor:** Cap Vanzan 
 * **Instituição:** Instituto Militar de Engenharia (IME)
