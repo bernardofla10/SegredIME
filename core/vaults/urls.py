@@ -1,18 +1,9 @@
 from django.urls import path
-from .views import (
-    status_view, 
-    clients_list, client_detail, 
-    secrets_list, secret_detail
-)
+from .views import SecretDetailView, SecretListCreateView, VaultListCreateView, status_view
 
 urlpatterns = [
     path("status/", status_view, name="status"),
-    
-    # Clients endpoints
-    path("api/clients/", clients_list, name="clients-list"),
-    path("api/clients/<int:pk>/", client_detail, name="client-detail"),
-    
-    # Secrets endpoints
-    path("api/secrets/", secrets_list, name="secrets-list"),
-    path("api/secrets/<int:pk>/", secret_detail, name="secret-detail"),
+    path("api/vaults/", VaultListCreateView.as_view(), name="vaults-list-create"),
+    path("api/secrets/", SecretListCreateView.as_view(), name="secrets-list-create"),
+    path("api/secrets/<int:pk>/", SecretDetailView.as_view(), name="secret-detail"),
 ]

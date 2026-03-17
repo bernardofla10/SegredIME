@@ -2,4 +2,5 @@ from django.apps import AppConfig
 
 
 class VaultsConfig(AppConfig):
-    name = 'vaults'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "vaults"

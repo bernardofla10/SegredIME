@@ -21,17 +21,30 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
       target: development
     container_name: segredime_backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: segredime_local
+      DB_USER: segredime_user
+      DB_PASSWORD: segredime_password
+      SECRET_KEY: segredime-dev-secret-key
+      DEBUG: "1"
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./core:/app
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8000/status/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - segredime_network
 

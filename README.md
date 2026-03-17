@@ -13,8 +13,6 @@ O projeto é construído sob uma arquitetura **API-first**, garantindo a integra
 * **Mobile:** Aplicativo híbrido para autorização de acessos críticos e segundo fator de autenticação (MFA).
 * **Infraestrutura:** Ecossistema integralmente conteinerizado via **Docker** para assegurar a reprodutibilidade do ambiente de desenvolvimento e deploy.
 
-
-
 ## 🛠️ Funcionalidades Principais
 
 * **F1: Gestão de Cofres e Criptografia de Segredos**
@@ -33,86 +31,132 @@ O projeto é construído sob uma arquitetura **API-first**, garantindo a integra
 | **Mobile** | React Native |
 | **Banco de Dados** | PostgreSQL |
 | **Infraestrutura** | Docker / Docker Compose |
+| **Servidor de Aplicação** | Uvicorn |
 
 ## 📂 Estrutura do Repositório
 
 Conforme os requisitos da disciplina, o projeto está segregado nos seguintes diretórios:
 
-* `/backend`: API e lógica de negócio. (Configurado via Docker)
-* `/frontend`: Interface administrativa Web. (Mockado via Docker)
-* `/mobile`: Aplicativo de segurança e MFA.
-* `/database`: Scripts de configuração e persistência. (PostgreSQL via Docker)
+* `/backend`: artefatos de build e configuração da API.
+* `/core`: projeto Django, modelagem das entidades e endpoints da aplicação.
+* `/frontend`: Interface administrativa Web. (planejada)
+* `/mobile`: Aplicativo de segurança e MFA. (planejado)
+* `/docs`: documentação complementar e artefatos auxiliares de validação.
 
 ## 🐳 Executando o Ambiente de Desenvolvimento
 
-O ambiente completo do projeto está empacotado e orquestrado através do Docker Compose, garantindo que todos os serviços fiquem de pé e totalmente configurados com um simples comando. Os serviços atualmente provisionados e suas respectivas portas são:
+O ambiente completo do projeto está empacotado e orquestrado através do Docker Compose, garantindo que os serviços principais fiquem de pé e configurados com um único comando. Os serviços atualmente provisionados e suas respectivas portas são:
 
-* **PostgreSQL (Database):** Porta `5432` 
-* **Backend API (Django + Uvicorn):** Porta `8000` 
+* **PostgreSQL (Database):** Porta `5432`
+* **Backend API (Django + Uvicorn):** Porta `8000`
 * **Frontend Web (Nginx/Mock):** Porta `3000`
 
 ### Como Subir o Ambiente
 No terminal, a partir do diretório raiz do projeto (`SegredIME`), execute:
+
 ```bash
-docker compose up -d
+docker compose up --build
 ```
-Todos os serviços serão construídos (se necessário) e iniciados em segundo plano.
+
+Em seguida, aplique as migrations do banco:
+
+```bash
+docker compose exec backend python manage.py migrate
+```
 
 ### Como Derrubar o Ambiente
 Para desligar o ambiente e parar os containers, execute o comando:
+
 ```bash
 docker compose down
 ```
+
 _Nota: Este comando apenas finaliza os serviços, mas as portas e dados nos volumes (ex: banco de dados) serão mantidos até rodar o comando com a flag `-v`._
 
-## 🔌 Endpoints da API (Versão Rudimentar)
+## 🗃️ Modelagem Inicial do Domínio
 
-O backend atual encontra-se em uma fase rudimentar. Ele expõe endpoints básicos de mockup para operações de banco de dados relacionadas a **Clientes** e **Secrets**. Atualmente, esses endpoints não possuem funcionalidade ativa (ex: lógica de negócio, autenticação ou criptografia) e retornam apenas respostas simuladas (*mocked*).
+Atualmente, o backend já conta com uma modelagem inicial persistida em banco para o núcleo do sistema:
 
-### Clientes
+### Vault
+- `id`
+- `name`
+- `description`
+- `created_at`
+- `updated_at`
 
-* `GET /api/clients/`
-  * **Descrição**: Recupera uma lista de todos os clientes registrados.
-  * **Status**: Mocked. Retorna uma lista estática de clientes fictícios.
-  
-* `GET /api/clients/{id}/`
-  * **Descrição**: Recupera detalhes de um cliente específico através do seu ID.
-  * **Status**: Mocked. Retorna detalhes de um cliente fictício.
+### Secret
+- `id`
+- `vault` (FK para `Vault`)
+- `title`
+- `description`
+- `secret_value`
+- `created_at`
+- `updated_at`
 
-* `POST /api/clients/`
-  * **Descrição**: Cria um novo registro de cliente no banco de dados.
-  * **Status**: Mocked. Aceita *payloads* de clientes, mas não os persiste. Retorna uma mensagem de sucesso.
+### Relacionamento
+- Um `Vault` possui vários `Secrets`.
+- Um `Secret` pertence a um único `Vault`.
 
-* `PUT /api/clients/{id}/`
-  * **Descrição**: Atualiza as informações de um cliente existente.
-  * **Status**: Mocked. Aceita dados atualizados, mas não realiza a atualização real no banco de dados.
+## 🔌 Endpoints da API
 
-* `DELETE /api/clients/{id}/`
-  * **Descrição**: Exclui um cliente do sistema.
-  * **Status**: Mocked. Retorna uma resposta de sucesso, mas não executa a exclusão real.
+### Status
+- `GET /status/`
+
+### Vaults
+- `POST /api/vaults/`
+- `GET /api/vaults/`
 
 ### Secrets
+- `POST /api/secrets/`
+- `GET /api/secrets/`
+- `GET /api/secrets/{id}/`
+- `PUT /api/secrets/{id}/`
+- `DELETE /api/secrets/{id}/`
 
-* `GET /api/secrets/`
-  * **Descrição**: Recupera uma lista de todos os *secrets* armazenados.
-  * **Status**: Mocked. Retorna uma lista fictícia de *secrets* sem realizar descriptografia real.
-  
-* `GET /api/secrets/{id}/`
-  * **Descrição**: Recupera os detalhes de um *secret* específico pelo seu ID.
-  * **Status**: Mocked. Retorna um *secret* simulado.
-  
-* `POST /api/secrets/`
-  * **Descrição**: Armazena um novo *secret* no cofre (*vault*).
-  * **Status**: Mocked. Aceita dados do *secret* (ex: título, valor), mas não os criptografa ou salva. Retorna uma resposta de sucesso genérica.
+Atualmente, o backend já realiza persistência real em PostgreSQL para `Vault` e `Secret`, permitindo operações de criação, consulta, atualização e exclusão via API.
 
-* `PUT /api/secrets/{id}/`
-  * **Descrição**: Atualiza um *secret* existente.
-  * **Status**: Mocked. Aceita os novos dados do *secret*, mas não os processa. Retorna uma confirmação de sucesso.
+## 📦 Exemplo de Payloads
 
-* `DELETE /api/secrets/{id}/`
-  * **Descrição**: Remove um *secret* específico do cofre (*vault*).
-  * **Status**: Mocked. Simula a exclusão e retorna uma resposta de sucesso.
+### Criar Vault
+
+```json
+{
+  "name": "Infra",
+  "description": "Cofre principal do ambiente"
+}
+```
+
+### Criar Secret
+
+```json
+{
+  "vault": 1,
+  "title": "DB Password",
+  "description": "Senha principal do banco",
+  "secret_value": "super-secret"
+}
+```
+
+## ✅ Validação Atual
+
+O projeto já possui validações automatizadas e manuais para a API. Os testes automatizados do backend cobrem:
+
+- criação de `Secret`;
+- listagem de `Secret`;
+- consulta de `Secret` por ID;
+- atualização de `Secret`;
+- exclusão de `Secret`.
+
+Além disso, o repositório inclui coleção Postman e documentação auxiliar para validação manual das rotas da API.
+
+## 📚 Documentação Complementar
+
+Os artefatos auxiliares de validação e documentação complementar estão em `docs/` e no Notion do projeto:
+
+- coleção Postman exportada;
+- ambiente local do Postman;
+- instruções de validação manual;
 
 ---
-* **Professor:** Cap Vanzan 
-* **Instituição:** Instituto Militar de Engenharia (IME)
+- **Professor:** Cap Vanzan
+- **Instituição:** Instituto Militar de Engenharia (IME)
