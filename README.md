@@ -52,13 +52,27 @@ SegredIME/
 
 Existem duas formas principais de subir o ambiente:
 
-### 1. Via Docker (Ambiente Completo)
-Ideal para homologação e testes de integração:
+### 1. Via Docker (Ambiente Completo - Recomendado)
+Ideal para homologação e testes de integração. Os contêineres já realizam as migrações do banco de dados automaticamente.
 ```bash
-docker compose up --build -d
+docker compose up --build
 ```
-*   **Frontend:** [http://localhost:3000](http://localhost:3000)
-*   **Backend:** [http://localhost:8000](http://localhost:8000)
+*   **Frontend (Next.js):** [http://localhost:3000](http://localhost:3000)
+*   **Backend (Django API):** [http://localhost:8000/api/](http://localhost:8000/api/)
+*   **Banco de Dados (PostgreSQL):** Porta `5432`
+
+---
+
+## 📥 Popular o Banco de Dados (Carga Inicial)
+Para facilitar os testes, uma coleção do Postman foi configurada para popular o banco de dados com dados de exemplo (cofres e segredos).
+
+1.  Localize o arquivo: `docs/SegredIME_Postman_Collection.json`
+2.  Importe-o no seu **Postman**.
+3.  Certifique-se de que o Docker está rodando.
+4.  Execute as requisições **Step 1 ao Step 6** em sequência.
+5.  Atualize o Dashboard do frontend ([localhost:3000](http://localhost:3000)) para ver os dados aparecerem em tempo real.
+
+---
 
 ### 2. Via Scripts Locais (Desenvolvimento Rápido)
 Para desenvolvedores que desejam iterar rapidamente no frontend ou backend:

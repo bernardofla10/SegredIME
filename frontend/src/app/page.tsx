@@ -1,71 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Plus, Lock, Key, Database, Globe } from "lucide-react";
+import { Search, Plus, Lock, Key, Database, Globe, Loader2 } from "lucide-react";
 
 interface Vault {
-  id: string;
+  id: number;
   name: string;
   description: string;
-  secretCount: number;
-  icon: any;
-  lastAccessed: string;
+  secrets_count: number;
+  updated_at: string;
 }
 
-const vaults: Vault[] = [
-  {
-    id: "1",
-    name: "Produção",
-    description: "Credenciais do ambiente de produção",
-    secretCount: 24,
-    icon: Database,
-    lastAccessed: "2026-02-24T10:30:00",
-  },
-  {
-    id: "2",
-    name: "APIs Externas",
-    description: "Chaves de integração com serviços externos",
-    secretCount: 18,
-    icon: Key,
-    lastAccessed: "2026-02-24T09:15:00",
-  },
-  {
-    id: "3",
-    name: "Certificados SSL",
-    description: "Certificados digitais e chaves privadas",
-    secretCount: 12,
-    icon: Lock,
-    lastAccessed: "2026-02-23T16:45:00",
-  },
-  {
-    id: "4",
-    name: "Desenvolvimento",
-    description: "Credenciais do ambiente de desenvolvimento",
-    secretCount: 32,
-    icon: Globe,
-    lastAccessed: "2026-02-24T11:20:00",
-  },
-  {
-    id: "5",
-    name: "Banco de Dados",
-    description: "Credenciais de acesso aos bancos de dados",
-    secretCount: 15,
-    icon: Database,
-    lastAccessed: "2026-02-24T08:00:00",
-  },
-  {
-    id: "6",
-    name: "Homologação",
-    description: "Credenciais do ambiente de homologação",
-    secretCount: 20,
-    icon: Globe,
-    lastAccessed: "2026-02-23T14:30:00",
-  },
-];
+const iconMap = [Database, Key, Lock, Globe];
 
 export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [vaults, setVaults] = useState<Vault[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    fetch(`${apiUrl}/api/vaults/`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error fetching data");
+        return res.json();
+      })
+      .then((data) => {
+        setVaults(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("API Error:", err);
+        setLoading(false);
+      });
+  }, []);
 
   const filteredVaults = vaults.filter((vault) =>
     vault.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,6 +50,15 @@ export default function DashboardPage() {
     if (diffInHours < 24) return `Há ${diffInHours}h`;
     return `Há ${Math.floor(diffInHours / 24)}d`;
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground animate-pulse">Carregando seus cofres...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8">
@@ -112,8 +90,9 @@ export default function DashboardPage() {
 
       {/* Vaults Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredVaults.map((vault) => {
-          const Icon = vault.icon;
+        {filteredVaults.map((vault, index) => {
+          // Assign an icon based on index or just default
+          const Icon = iconMap[index % iconMap.length];
           return (
             <Link
               key={vault.id}
@@ -125,15 +104,15 @@ export default function DashboardPage() {
                   <Icon className="w-6 h-6 text-primary" />
                 </div>
                 <span className="px-2.5 py-1 bg-muted text-muted-foreground rounded text-sm">
-                  {vault.secretCount} segredos
+                  {vault.secrets_count} segredos
                 </span>
               </div>
               <h3 className="mb-2 font-semibold text-lg">{vault.name}</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {vault.description}
+              <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[2.5rem]">
+                {vault.description || "Sem descrição"}
               </p>
               <div className="flex items-center text-xs text-muted-foreground border-t border-border pt-4">
-                <span>Último acesso: {formatLastAccessed(vault.lastAccessed)}</span>
+                <span>Último acesso: {formatLastAccessed(vault.updated_at)}</span>
               </div>
             </Link>
           );
@@ -154,7 +133,7 @@ export default function DashboardPage() {
         </div>
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="text-3xl font-bold mb-1 text-primary">
-            {vaults.reduce((acc, vault) => acc + vault.secretCount, 0)}
+            {vaults.reduce((acc, vault) => acc + vault.secrets_count, 0)}
           </div>
           <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Segredos Armazenados</div>
         </div>
