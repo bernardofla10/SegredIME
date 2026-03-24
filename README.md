@@ -1,162 +1,118 @@
-# SegredIME - Sistema de Gestão de Criptografia e Cofre de Senhas
+# 🔐 SegredIME 
+### Sistema de Gestão de Criptografia e Cofre de Senhas
 
-Projeto desenvolvido para a disciplina de **Laboratório de Programação III** do curso de **Engenharia de Computação** no 1º Período de 2026.
+> Projeto desenvolvido para a disciplina de **Laboratório de Programação III** do curso de **Engenharia de Computação** no **Instituto Militar de Engenharia (IME)**, 1º Período de 2026.
+
+---
 
 ## 📋 Descrição do Sistema
-O **SegredIME** é uma solução distribuída voltada para a custódia e gerenciamento de segredos digitais (senhas, chaves de API e certificados) com foco estrito em segurança de dados e auditoria de acessos. A plataforma utiliza criptografia em nível de aplicação para garantir que informações sensíveis permaneçam confidenciais desde a persistência no banco de dados até o consumo pelo usuário final.
+O **SegredIME** é uma solução distribuída de alta segurança voltada para a custódia e gerenciamento de segredos digitais (senhas, chaves de API e certificados). Com foco estrito em segurança de dados e auditoria, a plataforma utiliza criptografia em nível de aplicação (AES-256-GCM) para garantir a confidencialidade desde o banco de dados até o consumo pelo usuário final.
 
-## 🚀 Escopo Técnico
-O projeto é construído sob uma arquitetura **API-first**, garantindo a integração entre os seguintes componentes:
+---
 
-* **Backend:** API RESTful para orquestração de dados, criptografia e lógica de controle de acesso.
-* **Frontend Web:** Interface para administração de cofres lógicos, usuários e visualização de trilhas de auditoria.
-* **Mobile:** Aplicativo híbrido para autorização de acessos críticos e segundo fator de autenticação (MFA).
-* **Infraestrutura:** Ecossistema integralmente conteinerizado via **Docker** para assegurar a reprodutibilidade do ambiente de desenvolvimento e deploy.
+## 🚀 Escopo Técnico e Arquitetura
+O projeto segue uma arquitetura **API-First**, garantindo integração fluida entre:
 
-## 🛠️ Funcionalidades Principais
+*   **Backend (Core):** API RESTful em **Python/Django** para orquestração, criptografia e lógica de RBAC.
+*   **Frontend Web (Admin):** Interface administrativa moderna em **Next.js 15+** e **Tailwind v4**.
+*   **Mobile (MFA):** App em **React Native** para autorização 2FA em tempo real (Planejado).
+*   **Infraestrutura:** Dockerizado para reprodutibilidade total.
 
-* **F1: Gestão de Cofres e Criptografia de Segredos**
-    Implementação de "cofres" lógicos para organização de credenciais. Os segredos são criptografados no backend (ex: AES-256) antes da persistência no banco de dados.
-* **F2: Controle de Acesso e Compartilhamento Granular (Foco Mobile)**
-    Sistema de permissões baseado em funções (RBAC). Esta funcionalidade é o núcleo do sistema mobile: o aplicativo atua como segundo fator de autenticação (MFA), permitindo ao usuário autorizar ou negar acessos críticos em tempo real através de notificações, explorando a portabilidade do dispositivo como fator de segurança.
-* **F3: Auditoria e Logs de Segurança**
-    Registro automático e imutável de todas as ações realizadas (quem acessou qual segredo e quando), garantindo rastreabilidade total para auditorias de conformidade.
+---
 
-## 💻 Tech Stack
+## 🛠️ Tecnologias Principais (Tech Stack)
 
 | Camada | Tecnologia |
 | :--- | :--- |
-| **Backend** | Python / Django REST Framework (DRF) |
-| **Frontend Web** | React |
-| **Mobile** | React Native |
-| **Banco de Dados** | PostgreSQL |
+| **Backend** | Python 3.12+ / Django REST Framework |
+| **Frontend** | Next.js 15 / TypeScript / Tailwind CSS v4 / Lucide |
+| **Banco de Dados** | PostgreSQL 16 |
+| **Segurança** | Criptografia AES-256-GCM / RBAC |
 | **Infraestrutura** | Docker / Docker Compose |
-| **Servidor de Aplicação** | Uvicorn |
+
+---
 
 ## 📂 Estrutura do Repositório
 
-Conforme os requisitos da disciplina, o projeto está segregado nos seguintes diretórios:
-
-* `/backend`: artefatos de build e configuração da API.
-* `/core`: projeto Django, modelagem das entidades e endpoints da aplicação.
-* `/frontend`: Interface administrativa Web. (planejada)
-* `/mobile`: Aplicativo de segurança e MFA. (planejado)
-* `/docs`: documentação complementar e artefatos auxiliares de validação.
-
-## 🐳 Executando o Ambiente de Desenvolvimento
-
-O ambiente completo do projeto está empacotado e orquestrado através do Docker Compose, garantindo que os serviços principais fiquem de pé e configurados com um único comando. Os serviços atualmente provisionados e suas respectivas portas são:
-
-* **PostgreSQL (Database):** Porta `5432`
-* **Backend API (Django + Uvicorn):** Porta `8000`
-* **Frontend Web (Nginx/Mock):** Porta `3000`
-
-### Como Subir o Ambiente
-No terminal, a partir do diretório raiz do projeto (`SegredIME`), execute:
-
-```bash
-docker compose up --build
+```text
+SegredIME/
+├── backend/          # Configurações de infraestrutura e Docker do Backend
+├── core/             # Código-fonte da API Django (app principal)
+├── frontend/         # Interface Web em Next.js (App Router)
+│   ├── src/app       # Rotas e páginas da aplicação
+│   └── src/components # Base de componentes UI (Radix/Shadcn)
+├── mobile/           # (Planejado) Aplicativo de segurança e MFA
+├── database/         # Scripts de configuração do PostgreSQL
+└── docs/             # Guia de rotas e coleções Postman
 ```
-
-Em seguida, aplique as migrations do banco:
-
-```bash
-docker compose exec backend python manage.py migrate
-```
-
-### Como Derrubar o Ambiente
-Para desligar o ambiente e parar os containers, execute o comando:
-
-```bash
-docker compose down
-```
-
-_Nota: Este comando apenas finaliza os serviços, mas as portas e dados nos volumes (ex: banco de dados) serão mantidos até rodar o comando com a flag `-v`._
-
-## 🗃️ Modelagem Inicial do Domínio
-
-Atualmente, o backend já conta com uma modelagem inicial persistida em banco para o núcleo do sistema:
-
-### Vault
-- `id`
-- `name`
-- `description`
-- `created_at`
-- `updated_at`
-
-### Secret
-- `id`
-- `vault` (FK para `Vault`)
-- `title`
-- `description`
-- `secret_value`
-- `created_at`
-- `updated_at`
-
-### Relacionamento
-- Um `Vault` possui vários `Secrets`.
-- Um `Secret` pertence a um único `Vault`.
-
-## 🔌 Endpoints da API
-
-### Status
-- `GET /status/`
-
-### Vaults
-- `POST /api/vaults/`
-- `GET /api/vaults/`
-
-### Secrets
-- `POST /api/secrets/`
-- `GET /api/secrets/`
-- `GET /api/secrets/{id}/`
-- `PUT /api/secrets/{id}/`
-- `DELETE /api/secrets/{id}/`
-
-Atualmente, o backend já realiza persistência real em PostgreSQL para `Vault` e `Secret`, permitindo operações de criação, consulta, atualização e exclusão via API.
-
-## 📦 Exemplo de Payloads
-
-### Criar Vault
-
-```json
-{
-  "name": "Infra",
-  "description": "Cofre principal do ambiente"
-}
-```
-
-### Criar Secret
-
-```json
-{
-  "vault": 1,
-  "title": "DB Password",
-  "description": "Senha principal do banco",
-  "secret_value": "super-secret"
-}
-```
-
-## ✅ Validação Atual
-
-O projeto já possui validações automatizadas e manuais para a API. Os testes automatizados do backend cobrem:
-
-- criação de `Secret`;
-- listagem de `Secret`;
-- consulta de `Secret` por ID;
-- atualização de `Secret`;
-- exclusão de `Secret`.
-
-Além disso, o repositório inclui coleção Postman e documentação auxiliar para validação manual das rotas da API.
-
-## 📚 Documentação Complementar
-
-Os artefatos auxiliares de validação e documentação complementar estão em `docs/` e no Notion do projeto:
-
-- coleção Postman exportada;
-- ambiente local do Postman;
-- instruções de validação manual;
 
 ---
-- **Professor:** Cap Vanzan
-- **Instituição:** Instituto Militar de Engenharia (IME)
+
+## 🐳 Como Executar o Projeto
+
+Existem duas formas principais de subir o ambiente:
+
+### 1. Via Docker (Ambiente Completo)
+Ideal para homologação e testes de integração:
+```bash
+docker compose up --build -d
+```
+*   **Frontend:** [http://localhost:3000](http://localhost:3000)
+*   **Backend:** [http://localhost:8000](http://localhost:8000)
+
+### 2. Via Scripts Locais (Desenvolvimento Rápido)
+Para desenvolvedores que desejam iterar rapidamente no frontend ou backend:
+
+*   **Frontend (Next.js):**
+    ```bash
+    npm run server
+    ```
+*   **Backend (Django):**
+    ```bash
+    npm run backend
+    ```
+*   **Instalar dependências de todos os módulos:**
+    ```bash
+    npm run install:all
+    ```
+
+---
+
+## ✨ Funcionalidades do Frontend Administativo
+
+A interface administrativa em **Next.js** oferece os seguintes módulos:
+
+1.  **Dashboard de Cofres:** Visão geral de todos os cofres (Produção, APIs, SSL) e contagem de segredos.
+2.  **Visualização de Segredo:** Sistema com botão de "Revelar Senha" que simula fluxo de aprovação 2FA.
+3.  **Cofres Compartilhados:** Acesso granular a segredos compartilhados por outros membros da equipe.
+4.  **Trilha de Auditoria (Audit Trail):** Log imutável de quem acessou qual recurso, quando e de qual IP.
+5.  **Gestão de Usuários:** Controle de permissões (Admin, Editor, Viewer).
+6.  **Configurações de Segurança:** Políticas de expiração de senha, MFA e rotação de chaves.
+
+---
+
+## 🔌 Principais Endpoints da API (Backend)
+
+| Método | Endpoint | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/api/vaults/` | Lista todos os cofres lógicos |
+| `POST` | `/api/vaults/` | Cria um novo cofre |
+| `GET` | `/api/secrets/` | Lista todos os segredos (metadados) |
+| `GET` | `/api/secrets/{id}/` | Detalha um segredo específico |
+| `PUT` | `/api/secrets/{id}/` | Atualiza valores de um segredo |
+| `DELETE` | `/api/secrets/{id}/` | Remove um segredo permanentemente |
+
+---
+
+## ✅ Validação e Testes
+O backend conta com testes automatizados integrados. Para executá-los via Docker:
+```bash
+docker compose exec backend python manage.py test
+```
+
+---
+
+## 👨‍🏫 Equipe e Instituição
+*   **Professor:** Cap Vanzan
+*   **Instituição:** Instituto Militar de Engenharia (IME)
+*   **Projeto:** Disciplina de Laboratório de Programação III
