@@ -25,6 +25,9 @@ services:
       dockerfile: backend/Dockerfile
       target: development
     container_name: segredime_backend
+    command: >
+      sh -c "python manage.py migrate && 
+             uvicorn core.asgi:application --host 0.0.0.0 --port 8000 --reload"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -49,11 +52,16 @@ services:
       - segredime_network
 
   frontend:
-    # mockup do serviço
-    image: nginx:alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: segredime_frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:
-      - "3000:80"
+      - "3000:3000"
+    depends_on:
+      - backend
     networks:
       - segredime_network
 

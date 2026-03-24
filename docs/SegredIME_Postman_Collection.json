@@ -1,0 +1,190 @@
+{
+	"info": {
+		"_postman_id": "8d3e9c4b-1234-4567-890a-bcdef1234567",
+		"name": "SegredIME Population Script",
+		"description": "Script para popular minimamente o banco de dados do SegredIME com cofres e segredos iniciais.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Populate - Step 1: Create Production Vault",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Produção\",\n    \"description\": \"Cofre principal para credenciais do ambiente de produção.\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/vaults/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"vaults",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Populate - Step 2: Create Development Vault",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Desenvolvimento\",\n    \"description\": \"Chaves e segredos do ambiente de sandbox e dev.\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/vaults/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"vaults",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Populate - Step 3: Create External APIs Vault",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"APIs Externas\",\n    \"description\": \"Tokens de acesso para Stripe, AWS, SendGrid, etc.\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/vaults/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"vaults",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Populate - Step 4: Add Secret to Vault 1",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vault\": 1,\n    \"title\": \"Main DB Password\",\n    \"description\": \"Senha de root do PostgreSQL de produção\",\n    \"secret_value\": \"p4ssw0rd_pr0d_2024\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/secrets/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"secrets",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Populate - Step 5: Add Secret to Vault 1 (another)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vault\": 1,\n    \"title\": \"AWS Root Access Key\",\n    \"description\": \"Key de acesso global AWS (uso restrito)\",\n    \"secret_value\": \"AKIA_EXAMPLE_123456\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/secrets/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"secrets",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Populate - Step 6: Add Secret to Vault 2",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vault\": 2,\n    \"title\": \"Local Test Admin\",\n    \"description\": \"User admin para testes locais\",\n    \"secret_value\": \"admin123\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/secrets/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"secrets",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
