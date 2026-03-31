@@ -3,3 +3,4 @@ djangorestframework==3.16.1
 psycopg[binary]==3.2.12
 uvicorn==0.35.0
 django-cors-headers==4.7.0
+cryptography==46.0.2
