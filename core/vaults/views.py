@@ -21,11 +21,27 @@ class VaultListCreateView(generics.ListCreateAPIView):
 
 class SecretListCreateView(generics.ListCreateAPIView):
     permission_classes = [AllowAny]
-    queryset = Secret.objects.select_related("vault").all()
     serializer_class = SecretSerializer
+
+    def get_queryset(self):
+        queryset = Secret.objects.select_related("vault").all()
+        vault_id = self.request.query_params.get("vault")
+        if vault_id:
+            queryset = queryset.filter(vault_id=vault_id)
+        return queryset
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["include_secret_value"] = False
+        return context
 
 
 class SecretDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [AllowAny]
     queryset = Secret.objects.select_related("vault").all()
     serializer_class = SecretSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["include_secret_value"] = True
+        return context

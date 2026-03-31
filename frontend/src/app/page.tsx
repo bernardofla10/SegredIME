@@ -1,16 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, Plus, Lock, Key, Database, Globe, Loader2 } from "lucide-react";
 
-interface Vault {
-  id: number;
-  name: string;
-  description: string;
-  secrets_count: number;
-  updated_at: string;
-}
+import { api, Vault } from "@/lib/api";
 
 const iconMap = [Database, Key, Lock, Globe];
 
@@ -18,22 +12,37 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [vaults, setVaults] = useState<Vault[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [showCreateVault, setShowCreateVault] = useState(false);
+  const [newVaultName, setNewVaultName] = useState("");
+  const [newVaultDescription, setNewVaultDescription] = useState("");
+  const [creatingVault, setCreatingVault] = useState(false);
+  const [createFeedback, setCreateFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    fetch(`${apiUrl}/api/vaults/`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error fetching data");
-        return res.json();
-      })
-      .then((data) => {
+    let mounted = true;
+
+    async function loadVaults() {
+      try {
+        const data = await api.listVaults();
+        if (!mounted) return;
         setVaults(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("API Error:", err);
-        setLoading(false);
-      });
+        setErrorMessage(null);
+      } catch (error) {
+        if (!mounted) return;
+        const message = error instanceof Error ? error.message : "Erro ao carregar cofres.";
+        setErrorMessage(message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    void loadVaults();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const filteredVaults = vaults.filter((vault) =>
@@ -45,10 +54,37 @@ export default function DashboardPage() {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return "Há poucos minutos";
-    if (diffInHours < 24) return `Há ${diffInHours}h`;
-    return `Há ${Math.floor(diffInHours / 24)}d`;
+
+    if (diffInHours < 1) return "Ha poucos minutos";
+    if (diffInHours < 24) return `Ha ${diffInHours}h`;
+    return `Ha ${Math.floor(diffInHours / 24)}d`;
+  };
+
+  const handleCreateVault = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!newVaultName.trim()) {
+      setCreateFeedback("Nome do cofre e obrigatorio.");
+      return;
+    }
+
+    setCreatingVault(true);
+    setCreateFeedback(null);
+    try {
+      const created = await api.createVault({
+        name: newVaultName.trim(),
+        description: newVaultDescription.trim(),
+      });
+      setVaults((current) => [...current, created]);
+      setNewVaultName("");
+      setNewVaultDescription("");
+      setCreateFeedback("Cofre criado com sucesso.");
+      setShowCreateVault(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha ao criar cofre.";
+      setCreateFeedback(message);
+    } finally {
+      setCreatingVault(false);
+    }
   };
 
   if (loading) {
@@ -62,15 +98,13 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="mb-2 text-2xl font-bold">Meus Cofres</h1>
         <p className="text-muted-foreground">
-          Gerencie seus cofres de segredos digitais com segurança e controle total
+          Gerencie seus cofres de segredos digitais com seguranca e controle total
         </p>
       </div>
 
-      {/* Search and Actions */}
       <div className="flex items-center gap-4 mb-8">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -82,16 +116,63 @@ export default function DashboardPage() {
             className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
-        <button className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
+        <button
+          onClick={() => setShowCreateVault((current) => !current)}
+          className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+        >
           <Plus className="w-5 h-5" />
           Novo Cofre
         </button>
       </div>
 
-      {/* Vaults Grid */}
+      {errorMessage && (
+        <div className="mb-6 border border-red-200 bg-red-50 text-red-700 rounded-lg px-4 py-3">
+          {errorMessage}
+        </div>
+      )}
+
+      {showCreateVault && (
+        <form
+          onSubmit={handleCreateVault}
+          className="mb-8 bg-card border border-border rounded-lg p-5 space-y-4"
+        >
+          <h2 className="font-semibold">Criar novo cofre</h2>
+          <div>
+            <label className="block text-sm font-medium mb-2">Nome</label>
+            <input
+              type="text"
+              value={newVaultName}
+              onChange={(event) => setNewVaultName(event.target.value)}
+              className="w-full px-3 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Ex: Credenciais de Producao"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Descricao</label>
+            <textarea
+              value={newVaultDescription}
+              onChange={(event) => setNewVaultDescription(event.target.value)}
+              rows={3}
+              className="w-full px-3 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              placeholder="Contexto do cofre"
+            />
+          </div>
+          {createFeedback && (
+            <p className="text-sm text-muted-foreground">{createFeedback}</p>
+          )}
+          <button
+            type="submit"
+            disabled={creatingVault}
+            className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-70 inline-flex items-center gap-2"
+          >
+            {creatingVault && <Loader2 className="w-4 h-4 animate-spin" />}
+            Salvar cofre
+          </button>
+        </form>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredVaults.map((vault, index) => {
-          // Assign an icon based on index or just default
           const Icon = iconMap[index % iconMap.length];
           return (
             <Link
@@ -109,10 +190,10 @@ export default function DashboardPage() {
               </div>
               <h3 className="mb-2 font-semibold text-lg">{vault.name}</h3>
               <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[2.5rem]">
-                {vault.description || "Sem descrição"}
+                {vault.description || "Sem descricao"}
               </p>
               <div className="flex items-center text-xs text-muted-foreground border-t border-border pt-4">
-                <span>Último acesso: {formatLastAccessed(vault.updated_at)}</span>
+                <span>Ultimo acesso: {formatLastAccessed(vault.updated_at)}</span>
               </div>
             </Link>
           );
@@ -125,7 +206,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stats */}
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-card border border-border rounded-lg p-6">
           <div className="text-3xl font-bold mb-1 text-primary">{vaults.length}</div>
@@ -138,8 +218,8 @@ export default function DashboardPage() {
           <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Segredos Armazenados</div>
         </div>
         <div className="bg-card border border-border rounded-lg p-6">
-          <div className="text-3xl font-bold mb-1 text-green-600">100%</div>
-          <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Conformidade de Segurança</div>
+          <div className="text-3xl font-bold mb-1 text-green-600">AES-256</div>
+          <div className="text-sm text-muted-foreground font-medium uppercase tracking-wider">Criptografia em repouso</div>
         </div>
       </div>
     </div>

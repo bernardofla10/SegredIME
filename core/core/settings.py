@@ -4,6 +4,11 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "segredime-dev-secret-key")
+# Dev fallback key (base64 de 32 bytes). Em produção, sempre sobrescrever por variável de ambiente.
+SECRETS_ENCRYPTION_KEY = os.getenv(
+    "SECRETS_ENCRYPTION_KEY",
+    "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+)
 DEBUG = os.getenv("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
 
