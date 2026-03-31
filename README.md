@@ -15,9 +15,20 @@ O projeto segue uma arquitetura **API-First**, garantindo integração fluida en
 
 *   **Backend (Core):** API RESTful em **Python/Django** para orquestração, criptografia e lógica de RBAC.
 *   **Frontend Web (Admin):** Interface administrativa moderna em **Next.js 15+** e **Tailwind v4**.
-*   **Mobile (MFA):** App em **React Native** para autorização 2FA em tempo real (Planejado).
-*   **Infraestrutura:** Dockerizado para reprodutibilidade total.
+*   **Mobile (MFA):** Aplicativo híbrido em **React Native** para autorização de acessos críticos e segundo fator de autenticação em tempo real (Planejado).
+*   **Infraestrutura:** Ecossistema integralmente conteinerizado via **Docker** e **Docker Compose**, assegurando reprodutibilidade do ambiente de desenvolvimento e deploy.
 
+---
+
+## 🛠️ Funcionalidades Principais
+
+* **F1: Gestão de Cofres e Criptografia de Segredos**
+    Implementação de "cofres" lógicos para organização de credenciais. Os segredos são criptografados no backend (ex: AES-256) antes da persistência no banco de dados.
+* **F2: Controle de Acesso e Compartilhamento Granular (Foco Mobile)**
+    Sistema de permissões baseado em funções (RBAC). Esta funcionalidade é o núcleo do sistema mobile: o aplicativo atua como segundo fator de autenticação (MFA), permitindo ao usuário autorizar ou negar acessos críticos em tempo real através de notificações, explorando a portabilidade do dispositivo como fator de segurança.
+* **F3: Auditoria e Logs de Segurança**
+    Registro automático e imutável de todas as ações realizadas (quem acessou qual segredo e quando), garantindo rastreabilidade total para auditorias de conformidade.
+    
 ---
 
 ## 🛠️ Tecnologias Principais (Tech Stack)
@@ -26,24 +37,28 @@ O projeto segue uma arquitetura **API-First**, garantindo integração fluida en
 | :--- | :--- |
 | **Backend** | Python 3.12+ / Django REST Framework |
 | **Frontend** | Next.js 15 / TypeScript / Tailwind CSS v4 / Lucide |
+| **Mobile** | React Native |
 | **Banco de Dados** | PostgreSQL 16 |
 | **Segurança** | Criptografia AES-256-GCM / RBAC |
 | **Infraestrutura** | Docker / Docker Compose |
+| **Servidor de Aplicação** | Uvicorn |
 
 ---
 
 ## 📂 Estrutura do Repositório
 
+Conforme os requisitos da disciplina, o projeto está segregado nos seguintes diretórios:
+
 ```text
 SegredIME/
-├── backend/          # Configurações de infraestrutura e Docker do Backend
-├── core/             # Código-fonte da API Django (app principal)
-├── frontend/         # Interface Web em Next.js (App Router)
+├── backend/          # Configurações de infraestrutura, build e Docker do backend
+├── core/             # Projeto Django, modelagem das entidades e endpoints da API
+├── frontend/         # Interface web administrativa em Next.js (App Router)
 │   ├── src/app       # Rotas e páginas da aplicação
 │   └── src/components # Base de componentes UI (Radix/Shadcn)
-├── mobile/           # (Planejado) Aplicativo de segurança e MFA
-├── database/         # Scripts de configuração do PostgreSQL
-└── docs/             # Guia de rotas e coleções Postman
+├── mobile/           # Aplicativo de segurança e MFA (planejado)
+├── database/         # Scripts de configuração e persistência do PostgreSQL
+└── docs/             # Documentação complementar e artefatos auxiliares de validação
 ```
 
 ---
@@ -53,13 +68,30 @@ SegredIME/
 Existem duas formas principais de subir o ambiente:
 
 ### 1. Via Docker (Ambiente Completo - Recomendado)
-Ideal para homologação e testes de integração. Os contêineres já realizam as migrações do banco de dados automaticamente.
+Ideal para homologação e testes de integração. O ambiente completo está empacotado e orquestrado com Docker Compose, garantindo que os serviços principais fiquem de pé e configurados com um único comando.
 ```bash
 docker compose up --build
 ```
 *   **Frontend (Next.js):** [http://localhost:3000](http://localhost:3000)
 *   **Backend (Django API):** [http://localhost:8000/api/](http://localhost:8000/api/)
 *   **Banco de Dados (PostgreSQL):** Porta `5432`
+
+O backend depende da chave de criptografia `SECRETS_ENCRYPTION_KEY` (32 bytes em Base64). No `docker-compose.yml` ela já está declarada para ambiente local.
+
+Se for necessário aplicar migrations manualmente:
+
+```bash
+docker compose up -d
+docker compose exec backend python manage.py migrate
+```
+
+Para derrubar o ambiente:
+
+```bash
+docker compose down
+```
+
+_Nota: esse comando encerra os serviços, mas os dados persistidos em volumes, como o banco de dados, permanecem até o uso da flag `-v`._
 
 ---
 
@@ -97,7 +129,7 @@ Para desenvolvedores que desejam iterar rapidamente no frontend ou backend:
 A interface administrativa em **Next.js** oferece os seguintes módulos:
 
 1.  **Dashboard de Cofres:** Visão geral de todos os cofres (Produção, APIs, SSL) e contagem de segredos.
-2.  **Visualização de Segredo:** Sistema com botão de "Revelar Senha" que simula fluxo de aprovação 2FA.
+2.  **Visualização de Segredo:** Fluxo de revelação que consulta o backend para descriptografar `secret_value` sob demanda.
 3.  **Cofres Compartilhados:** Acesso granular a segredos compartilhados por outros membros da equipe.
 4.  **Trilha de Auditoria (Audit Trail):** Log imutável de quem acessou qual recurso, quando e de qual IP.
 5.  **Gestão de Usuários:** Controle de permissões (Admin, Editor, Viewer).
@@ -111,10 +143,61 @@ A interface administrativa em **Next.js** oferece os seguintes módulos:
 | :--- | :--- | :--- |
 | `GET` | `/api/vaults/` | Lista todos os cofres lógicos |
 | `POST` | `/api/vaults/` | Cria um novo cofre |
-| `GET` | `/api/secrets/` | Lista todos os segredos (metadados) |
-| `GET` | `/api/secrets/{id}/` | Detalha um segredo específico |
+| `GET` | `/api/secrets/?vault={vault_id}` | Lista segredos (somente metadados) filtrando por cofre |
+| `GET` | `/api/secrets/{id}/` | Detalha um segredo com `secret_value` descriptografado |
 | `PUT` | `/api/secrets/{id}/` | Atualiza valores de um segredo |
 | `DELETE` | `/api/secrets/{id}/` | Remove um segredo permanentemente |
+
+---
+
+## 🗃️ Modelagem Inicial do Domínio
+
+Atualmente, o backend já conta com persistência real em PostgreSQL para o núcleo do sistema, permitindo operações de criação, consulta, atualização e exclusão via API.
+
+### Vault
+- `id`
+- `name`
+- `description`
+- `created_at`
+- `updated_at`
+
+### Secret
+- `id`
+- `vault` (FK para `Vault`)
+- `title`
+- `description`
+- `encrypted_value` (persistido no banco como ciphertext)
+- `created_at`
+- `updated_at`
+
+### Relacionamento
+- Um `Vault` possui vários `Secrets`.
+- Um `Secret` pertence a um único `Vault`.
+- A API recebe `secret_value` na escrita e só o expõe no endpoint de detalhe (`GET /api/secrets/{id}/`).
+
+---
+
+## 📦 Exemplo de Payloads
+
+### Criar Vault
+
+```json
+{
+  "name": "Infra",
+  "description": "Cofre principal do ambiente"
+}
+```
+
+### Criar Secret
+
+```json
+{
+  "vault": 1,
+  "title": "DB Password",
+  "description": "Senha principal do banco",
+  "secret_value": "super-secret"
+}
+```
 
 ---
 
@@ -123,6 +206,40 @@ O backend conta com testes automatizados integrados. Para executá-los via Docke
 ```bash
 docker compose exec backend python manage.py test
 ```
+
+Os testes automatizados do backend cobrem:
+
+- criação de `Secret`;
+- listagem de `Secret`;
+- consulta de `Secret` por ID;
+- atualização de `Secret`;
+- exclusão de `Secret`.
+
+### Cenário E2E de validação manual (fluxo completo)
+
+1. Acesse o frontend em `http://localhost:3000`.
+2. Crie um novo cofre.
+3. Entre no cofre e cadastre um novo segredo.
+4. Recarregue a página e valide que o segredo ainda existe.
+5. Clique em **Revelar Segredo** e confirme retorno descriptografado via backend.
+
+### Inspeção do banco (criptografia em repouso)
+
+Com o ambiente em execução:
+
+```bash
+docker compose exec postgres psql -U segredime_user -d segredime_local -c "SELECT id, encrypted_value FROM vaults_secret;"
+```
+
+O valor de `encrypted_value` deve aparecer em formato cifrado (prefixo `v1:`), e não em texto puro.
+
+Além disso, o repositório inclui artefatos de validação manual, incluindo coleção Postman exportada, ambiente local do Postman e instruções auxiliares em `docs/`.
+
+---
+
+## 📚 Documentação Complementar
+
+Os artefatos auxiliares de validação e documentação complementar estão em `docs/` e no Notion do projeto.
 
 ---
 
