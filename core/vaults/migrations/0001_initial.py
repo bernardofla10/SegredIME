@@ -3,6 +3,7 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
+
     initial = True
 
     dependencies = []
@@ -11,18 +12,36 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="Vault",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("name", models.CharField(max_length=120)),
                 ("description", models.TextField(blank=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],
-            options={"ordering": ["id"]},
+            options={
+                "ordering": ["id"],
+            },
         ),
         migrations.CreateModel(
             name="Secret",
             fields=[
-                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
                 ("title", models.CharField(max_length=120)),
                 ("description", models.TextField(blank=True)),
                 ("secret_value", models.TextField()),
@@ -37,6 +56,8 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"ordering": ["id"]},
+            options={
+                "ordering": ["id"],
+            },
         ),
     ]

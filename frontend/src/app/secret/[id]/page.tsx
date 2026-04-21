@@ -1,18 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Eye,
-  Copy,
-  Clock,
-  Shield,
-  CheckCircle,
-  Loader2,
-  Plus,
-} from "lucide-react";
+import { ArrowLeft, Eye, Copy, Clock, Shield, CheckCircle, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { api, SecretSummary } from "@/lib/api";
 
@@ -30,18 +21,31 @@ export default function SecretDetailPage() {
   const [revealStatus, setRevealStatus] = useState<RevealStatus>("hidden");
   const [revealedSecretValue, setRevealedSecretValue] = useState("");
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
+  
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  const [showCreateSecret, setShowCreateSecret] = useState(false);
-  const [newSecretTitle, setNewSecretTitle] = useState("");
-  const [newSecretDescription, setNewSecretDescription] = useState("");
-  const [newSecretValue, setNewSecretValue] = useState("");
-  const [creatingSecret, setCreatingSecret] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const selectedSecret = useMemo(
     () => secrets.find((secret) => secret.id === selectedSecretId) || null,
     [secrets, selectedSecretId],
   );
+
+  const loadSecrets = async () => {
+    try {
+      const data = await api.listSecrets(vaultId);
+      setSecrets(data);
+      setSelectedSecretId((current) => {
+        if (current && data.some((secret) => secret.id === current)) return current;
+        return data[0]?.id ?? null;
+      });
+      setListError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao carregar segredos.";
+      setListError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!vaultId) {
@@ -49,33 +53,7 @@ export default function SecretDetailPage() {
       setLoading(false);
       return;
     }
-
-    let mounted = true;
-
-    async function loadSecrets() {
-      try {
-        const data = await api.listSecrets(vaultId);
-        if (!mounted) return;
-        setSecrets(data);
-        setSelectedSecretId((current) => {
-          if (current && data.some((secret) => secret.id === current)) return current;
-          return data[0]?.id ?? null;
-        });
-        setListError(null);
-      } catch (error) {
-        if (!mounted) return;
-        const message = error instanceof Error ? error.message : "Erro ao carregar segredos.";
-        setListError(message);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    void loadSecrets();
-
-    return () => {
-      mounted = false;
-    };
+    loadSecrets();
   }, [vaultId]);
 
   useEffect(() => {
@@ -84,14 +62,11 @@ export default function SecretDetailPage() {
     setSecurityMessage(null);
   }, [selectedSecretId]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const getCSRFToken = async (): Promise<string> => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const res = await fetch(`${API_URL}/api/auth/csrf/`, { credentials: "include" });
+    const data = await res.json();
+    return data.csrfToken;
   };
 
   const handleRevealSecret = async () => {
@@ -101,13 +76,48 @@ export default function SecretDetailPage() {
     setSecurityMessage("Solicitacao enviada. Validando acesso e descriptografando no backend...");
     try {
       const detail = await api.getSecret(selectedSecret.id);
-      setRevealedSecretValue(detail.secret_value);
-      setRevealStatus("revealed");
-      setSecurityMessage("Segredo revelado com sucesso.");
+      
+      // Post to the generic API to log the reveal
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const csrfToken = await getCSRFToken();
+      await fetch(`${API_URL}/api/secrets/${selectedSecret.id}/reveal/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/json" },
+        credentials: "include"
+      });
+
+      // Approve payload
+      setTimeout(() => {
+        setRevealedSecretValue(detail.secret_value);
+        setRevealStatus("revealed");
+        setSecurityMessage("Segredo revelado com sucesso.");
+      }, 2000);
+      
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao revelar segredo.";
       setRevealStatus("error");
       setSecurityMessage(message);
+    }
+  };
+
+  const handleDeleteSecret = async () => {
+    if (!selectedSecret) return;
+    if (!window.confirm(`Tem certeza que deseja excluir '${selectedSecret.title}'?`)) return;
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const csrfToken = await getCSRFToken();
+      const res = await fetch(`${API_URL}/api/secrets/${selectedSecret.id}/`, {
+        method: "DELETE",
+        headers: { "X-CSRFToken": csrfToken },
+        credentials: "include"
+      });
+      if (res.ok) {
+        setSelectedSecretId(null);
+        loadSecrets();
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -117,35 +127,14 @@ export default function SecretDetailPage() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleCreateSecret = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!vaultId) return;
-
-    setCreatingSecret(true);
-    setSecurityMessage(null);
-    try {
-      const created = await api.createSecret({
-        vault: vaultId,
-        title: newSecretTitle.trim(),
-        description: newSecretDescription.trim(),
-        secret_value: newSecretValue,
-      });
-
-      setSecrets((current) => [...current, created]);
-      setSelectedSecretId(created.id);
-      setShowCreateSecret(false);
-      setNewSecretTitle("");
-      setNewSecretDescription("");
-      setNewSecretValue("");
-      setRevealStatus("hidden");
-      setRevealedSecretValue("");
-      setSecurityMessage("Segredo salvo com sucesso. Valor persistido de forma criptografada.");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Nao foi possivel salvar o segredo.";
-      setSecurityMessage(message);
-    } finally {
-      setCreatingSecret(false);
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   if (loading) {
@@ -160,10 +149,7 @@ export default function SecretDetailPage() {
   if (listError) {
     return (
       <div className="p-8">
-        <Link
-          href="/"
-          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors"
-        >
+        <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar aos Cofres
         </Link>
@@ -177,19 +163,13 @@ export default function SecretDetailPage() {
   return (
     <div className="p-8 pb-20">
       <div className="mb-8">
-        <Link
-          href="/"
-          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors"
-        >
+        <Link href="/" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Voltar aos Cofres
         </Link>
         <h1 className="text-2xl font-bold mb-2">Visualizacao de Segredo</h1>
         <p className="text-muted-foreground">
-          Cofre{" "}
-          <span className="font-medium">
-            {selectedSecret ? selectedSecret.vault_name : `#${vaultId}`}
-          </span>
+          Cofre <span className="font-medium">{selectedSecret ? selectedSecret.vault_name : `#${vaultId}`}</span>
         </p>
       </div>
 
@@ -205,8 +185,9 @@ export default function SecretDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Segredos no Cofre</h3>
               <button
-                onClick={() => setShowCreateSecret((current) => !current)}
-                className="inline-flex items-center gap-2 text-sm px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                onClick={() => setShowCreateModal(true)}
+                className="inline-flex items-center gap-2 text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20"
+                title="Adicionar Novo Segredo"
               >
                 <Plus className="w-4 h-4" />
                 Novo
@@ -223,7 +204,7 @@ export default function SecretDetailPage() {
                   key={secret.id}
                   onClick={() => setSelectedSecretId(secret.id)}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                    selectedSecret.id === secret.id
+                    selectedSecretId === secret.id
                       ? "bg-primary/10 border border-primary/20"
                       : "hover:bg-muted border border-transparent"
                   }`}
@@ -236,48 +217,6 @@ export default function SecretDetailPage() {
               ))}
             </div>
           </div>
-
-          {showCreateSecret && (
-            <form
-              onSubmit={handleCreateSecret}
-              className="bg-card border border-border rounded-lg p-5 space-y-3"
-            >
-              <h3 className="font-semibold">Novo segredo</h3>
-              <input
-                type="text"
-                placeholder="Titulo"
-                value={newSecretTitle}
-                onChange={(event) => setNewSecretTitle(event.target.value)}
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <textarea
-                placeholder="Descricao"
-                value={newSecretDescription}
-                onChange={(event) => setNewSecretDescription(event.target.value)}
-                rows={3}
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              />
-              <input
-                type="text"
-                placeholder="Valor secreto"
-                value={newSecretValue}
-                onChange={(event) => setNewSecretValue(event.target.value)}
-                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring font-mono"
-              />
-              <button
-                type="submit"
-                disabled={
-                  creatingSecret ||
-                  !newSecretTitle.trim() ||
-                  !newSecretValue.trim()
-                }
-                className="w-full px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-60 inline-flex items-center justify-center gap-2"
-              >
-                {creatingSecret && <Loader2 className="w-4 h-4 animate-spin" />}
-                Salvar segredo
-              </button>
-            </form>
-          )}
         </div>
 
         <div className="lg:col-span-2 space-y-6">
@@ -291,34 +230,53 @@ export default function SecretDetailPage() {
                       Ultima modificacao: {formatDate(selectedSecret.updated_at)}
                     </p>
                   </div>
-                  <Shield className="w-8 h-8 text-primary" />
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={handleDeleteSecret}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Excluir Segredo"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    <Shield className="w-8 h-8 text-primary" />
+                  </div>
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
-                      Descricao
-                    </label>
-                    <textarea
-                      value={selectedSecret.description || "Sem descricao"}
-                      readOnly
-                      rows={3}
-                      className="w-full px-4 py-3 bg-muted/30 border border-border rounded-lg focus:outline-none resize-none"
-                    />
-                  </div>
+                  {selectedSecret.username && (
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+                        Usuário
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={selectedSecret.username}
+                          readOnly
+                          className="flex-1 px-4 py-3 bg-muted/30 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <button
+                          onClick={() => handleCopy(selectedSecret.username!, "username")}
+                          className="px-4 py-3 bg-card hover:bg-muted/50 border border-border rounded-lg transition-colors outline-none"
+                        >
+                          {copiedField === "username" ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <Copy className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
-                      Segredo
+                      Segredo / Senha
                     </label>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        value={
-                          revealStatus === "revealed"
-                            ? revealedSecretValue
-                            : "********************"
-                        }
+                        value={revealStatus === "revealed" ? revealedSecretValue : "********************"}
                         readOnly
                         className="flex-1 px-4 py-3 bg-muted/30 border border-border rounded-lg focus:outline-none font-mono"
                       />
@@ -340,7 +298,7 @@ export default function SecretDetailPage() {
                   {revealStatus === "hidden" && (
                     <button
                       onClick={handleRevealSecret}
-                      className="w-full px-4 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 font-semibold"
+                      className="w-full px-4 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-2 font-semibold shadow-sm hover:shadow-md"
                     >
                       <Eye className="w-5 h-5" />
                       Revelar Segredo
@@ -351,7 +309,7 @@ export default function SecretDetailPage() {
                     <div className="w-full px-4 py-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-center gap-3">
                       <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
                       <span className="text-yellow-700 font-semibold">
-                        Descriptografando no backend...
+                        Aguardando Aprovação no Mobile / Descriptografando...
                       </span>
                     </div>
                   )}
@@ -360,7 +318,7 @@ export default function SecretDetailPage() {
                     <div className="w-full px-4 py-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-center gap-3">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                       <span className="text-green-700 font-semibold">
-                        Segredo revelado com sucesso
+                        Senha revelada com sucesso
                       </span>
                     </div>
                   )}
@@ -368,6 +326,60 @@ export default function SecretDetailPage() {
                   {revealStatus === "error" && (
                     <div className="w-full px-4 py-4 bg-red-50 border border-red-200 rounded-lg text-red-700 font-semibold text-center">
                       Falha ao revelar segredo. Verifique a configuracao de criptografia.
+                    </div>
+                  )}
+
+                  {selectedSecret.url && (
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+                        URL
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={selectedSecret.url}
+                          readOnly
+                          className="flex-1 px-4 py-3 bg-muted/30 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                        />
+                        <button
+                          onClick={() => handleCopy(selectedSecret.url!, "url")}
+                          className="px-4 py-3 bg-card hover:bg-muted/50 border border-border rounded-lg transition-colors outline-none"
+                        >
+                          {copiedField === "url" ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <Copy className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSecret.notes && (
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+                        Notas Adicionais
+                      </label>
+                      <textarea
+                        value={selectedSecret.notes}
+                        readOnly
+                        rows={4}
+                        className="w-full px-4 py-3 bg-muted/30 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      />
+                    </div>
+                  )}
+                  
+                  {selectedSecret.description && !selectedSecret.notes && (
+                    <div>
+                      <label className="block text-sm font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+                        Descricao
+                      </label>
+                      <textarea
+                        value={selectedSecret.description}
+                        readOnly
+                        rows={3}
+                        className="w-full px-4 py-3 bg-muted/30 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      />
                     </div>
                   )}
                 </div>
@@ -398,15 +410,122 @@ export default function SecretDetailPage() {
             </>
           ) : (
             <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
-              Clique em <span className="font-medium">Novo</span> para cadastrar o primeiro segredo deste cofre.
-              {showCreateSecret ? (
-                <div className="mt-3">
-                  Preencha o formulario na coluna da esquerda e salve.
-                </div>
-              ) : null}
+              Selecione um segredo ao lado ou crie um novo para visualizar.
             </div>
           )}
         </div>
+      </div>
+
+      {showCreateModal && (
+        <CreateSecretModal
+          vaultId={vaultId.toString()}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={loadSecrets}
+        />
+      )}
+    </div>
+  );
+}
+
+
+function CreateSecretModal({ vaultId, onClose, onCreated }: { vaultId: string; onClose: () => void; onCreated: () => void }) {
+  const [title, setTitle] = useState("");
+  const [value, setValue] = useState("");
+  const [description, setDescription] = useState("");
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<string|null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setFeedback(null);
+
+    try {
+      await api.createSecret({
+        vault: parseInt(vaultId),
+        title: title,
+        secret_value: value,
+        description: description,
+        username: username,
+      });
+      onCreated();
+      onClose();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erro ao criar segredo.";
+      setFeedback(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 animate-in fade-in zoom-in-95">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-lg font-bold">Novo Segredo</h2>
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
+            ✕
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold mb-1.5">Nome / Titulo</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1.5">Nome de Usuário</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1.5">Senha Exata</label>
+            <input
+              type="password"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold mb-1.5">Descricao/Anotacoes</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+              rows={2}
+            />
+          </div>
+          {feedback && <p className="text-sm text-red-600">{feedback}</p>}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2.5 bg-muted text-foreground font-semibold rounded-lg hover:bg-muted/70 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center gap-2"
+            >
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Criar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

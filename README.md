@@ -141,6 +141,11 @@ A interface administrativa em **Next.js** oferece os seguintes módulos:
 
 | Método | Endpoint | Descrição |
 | :--- | :--- | :--- |
+| `POST` | `/api/auth/login/` | Autenticação via Session/CSRF |
+| `POST` | `/api/auth/register/` | Criação de novo usuário / perfil |
+| `GET`  | `/api/auth/me/` | Recuperar perfil do logado atual |
+| `GET` | `/api/users/` | Listagem da tabela de Usuários e Roles |
+| `GET` | `/api/logs/` | Trilha Imutável da Auditoria (Acessos) |
 | `GET` | `/api/vaults/` | Lista todos os cofres lógicos |
 | `POST` | `/api/vaults/` | Cria um novo cofre |
 | `GET` | `/api/secrets/?vault={vault_id}` | Lista segredos (somente metadados) filtrando por cofre |
