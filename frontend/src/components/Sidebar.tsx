@@ -2,10 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Lock, FolderLock, Share2, FileText, Users, Shield } from "lucide-react";
+import { Lock, FolderLock, Share2, FileText, Users, Shield, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   const navigation = [
     { name: "Meus Cofres", href: "/", icon: FolderLock },
@@ -20,6 +22,27 @@ export function Sidebar() {
       return pathname === "/";
     }
     return pathname.startsWith(href);
+  };
+
+  const getInitials = () => {
+    if (!user) return "??";
+    if (user.first_name && user.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+    }
+    return user.username.slice(0, 2).toUpperCase();
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "Admin";
+      case "editor":
+        return "Editor";
+      case "viewer":
+        return "Viewer";
+      default:
+        return role;
+    }
   };
 
   return (
@@ -57,13 +80,24 @@ export function Sidebar() {
       {/* User Section */}
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center">
-          <div className="w-9 h-9 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-accent-foreground">
-            JD
+          <div className="w-9 h-9 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-accent-foreground text-sm font-bold">
+            {getInitials()}
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-sidebar-foreground font-medium">João Dias</p>
-            <p className="text-xs text-sidebar-foreground/60">Admin</p>
+          <div className="ml-3 flex-1 min-w-0">
+            <p className="text-sm text-sidebar-foreground font-medium truncate">
+              {user?.full_name || user?.username || "Usuário"}
+            </p>
+            <p className="text-xs text-sidebar-foreground/60">
+              {getRoleLabel(user?.role || "viewer")}
+            </p>
           </div>
+          <button
+            onClick={logout}
+            className="p-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-lg transition-colors"
+            title="Sair"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

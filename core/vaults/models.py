@@ -19,6 +19,9 @@ class Vault(models.Model):
 class Secret(models.Model):
     vault = models.ForeignKey(Vault, on_delete=models.CASCADE, related_name="secrets")
     title = models.CharField(max_length=120)
+    username = models.CharField(max_length=150, blank=True)
+    url = models.URLField(blank=True)
+    notes = models.TextField(blank=True)
     description = models.TextField(blank=True)
     encrypted_value = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)

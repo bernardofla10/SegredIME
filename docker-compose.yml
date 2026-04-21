@@ -27,6 +27,7 @@ services:
     container_name: segredime_backend
     command: >
       sh -c "python manage.py migrate && 
+             python manage.py seed &&
              uvicorn core.asgi:application --host 0.0.0.0 --port 8000 --reload"
     environment:
       DB_HOST: postgres
