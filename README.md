@@ -24,11 +24,10 @@ O projeto segue uma arquitetura **API-First**, garantindo integração fluida en
 
 * **F1: Gestão de Cofres e Criptografia de Segredos**
     Implementação de "cofres" lógicos para organização de credenciais. Os segredos são criptografados no backend (ex: AES-256) antes da persistência no banco de dados.
-* **F2: Controle de Acesso e Compartilhamento Granular (Foco Mobile)**
-    Sistema de permissões baseado em funções (RBAC). Esta funcionalidade é o núcleo do sistema mobile: o aplicativo atua como segundo fator de autenticação (MFA), permitindo ao usuário autorizar ou negar acessos críticos em tempo real através de notificações, explorando a portabilidade do dispositivo como fator de segurança.
-* **F3: Auditoria e Logs de Segurança**
+* **F2: Auditoria e Logs de Segurança**
     Registro automático e imutável de todas as ações realizadas (quem acessou qual segredo e quando), garantindo rastreabilidade total para auditorias de conformidade.
-    
+* **F3: Controle de Acesso e Compartilhamento Granular (Foco Mobile)**
+    Sistema de permissões baseado em funções (RBAC). Esta funcionalidade é o núcleo do sistema mobile: o aplicativo atua como segundo fator de autenticação (MFA), permitindo ao usuário autorizar ou negar acessos críticos em tempo real através de notificações, explorando a portabilidade do dispositivo como fator de segurança.
 ---
 
 ## 🛠️ Tecnologias Principais (Tech Stack)
@@ -148,10 +147,22 @@ A interface administrativa em **Next.js** oferece os seguintes módulos:
 | `GET` | `/api/logs/` | Trilha Imutável da Auditoria (Acessos) |
 | `GET` | `/api/vaults/` | Lista todos os cofres lógicos |
 | `POST` | `/api/vaults/` | Cria um novo cofre |
-| `GET` | `/api/secrets/?vault={vault_id}` | Lista segredos (somente metadados) filtrando por cofre |
-| `GET` | `/api/secrets/{id}/` | Detalha um segredo com `secret_value` descriptografado |
+| `GET` | `/api/secrets/?vault={vault_id}` | Lista segredos (metadados) filtrando por cofre |
+| `GET` | `/api/secrets/{id}/` | Detalha um segredo (inclui `username`, `url`, `notes`) |
+| `POST` | `/api/secrets/{id}/reveal/` | Inicia o fluxo de revelação de senha e registra no log de auditoria |
 | `PUT` | `/api/secrets/{id}/` | Atualiza valores de um segredo |
 | `DELETE` | `/api/secrets/{id}/` | Remove um segredo permanentemente |
+
+---
+
+## 📋 Logs e Auditoria
+O sistema registra automaticamente todas as ações importantes no banco de dados para segurança:
+* **Criação:** Quando um cofre ou segredo é criado.
+* **Leitura:** Quando alguém visualiza os detalhes de um segredo.
+* **Revelação:** Registro específico de quando a senha/valor foi revelado.
+* **Edição/Exclusão:** Rastreio de modificações e remoções.
+
+Os logs incluem: **Usuário, Data/Hora, Ação Realizada e IP.**
 
 ---
 
@@ -170,8 +181,11 @@ Atualmente, o backend já conta com persistência real em PostgreSQL para o núc
 - `id`
 - `vault` (FK para `Vault`)
 - `title`
+- `username` (Opcional)
+- `url` (Opcional)
+- `notes` (Opcional)
 - `description`
-- `encrypted_value` (persistido no banco como ciphertext)
+- `encrypted_value` (persistido no banco como ciphertext AES-256-GCM)
 - `created_at`
 - `updated_at`
 
