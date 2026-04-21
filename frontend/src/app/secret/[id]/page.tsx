@@ -432,7 +432,6 @@ function CreateSecretModal({ vaultId, onClose, onCreated }: { vaultId: string; o
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
   const [description, setDescription] = useState("");
-  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string|null>(null);
 
@@ -447,7 +446,6 @@ function CreateSecretModal({ vaultId, onClose, onCreated }: { vaultId: string; o
         title: title,
         secret_value: value,
         description: description,
-        username: username,
       });
       onCreated();
       onClose();
@@ -476,15 +474,6 @@ function CreateSecretModal({ vaultId, onClose, onCreated }: { vaultId: string; o
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold mb-1.5">Nome de Usuário</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

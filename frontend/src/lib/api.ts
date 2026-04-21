@@ -13,6 +13,9 @@ export interface SecretSummary {
   vault_name: string;
   title: string;
   description: string;
+  username?: string;
+  url?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
