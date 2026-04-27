@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
 from accounts.models import AccessLog
-from vaults.models import Secret, Vault
+from vaults.models import MfaApprovalRequest, Secret, Vault, VaultAccess
 
 User = get_user_model()
 
@@ -96,6 +96,29 @@ class Command(BaseCommand):
 
         prod, apis, ssl, dev = created_vaults
 
+        access_data = [
+            (prod, joao, "owner", joao),
+            (prod, maria, "write", joao),
+            (prod, ana, "read", joao),
+            (apis, maria, "owner", maria),
+            (apis, carlos, "write", maria),
+            (apis, ana, "read", maria),
+            (ssl, carlos, "owner", joao),
+            (ssl, joao, "write", carlos),
+            (dev, joao, "owner", joao),
+            (dev, maria, "write", joao),
+            (dev, carlos, "write", joao),
+            (dev, ana, "read", joao),
+        ]
+
+        for vault, user, permission, granted_by in access_data:
+            VaultAccess.objects.update_or_create(
+                vault=vault,
+                user=user,
+                defaults={"permission": permission, "granted_by": granted_by},
+            )
+        self.stdout.write(f"  ✅ {len(access_data)} permissões de cofre configuradas")
+
         # ── Secrets ────────────────────────────────────
         secrets_data = [
             {"vault": prod, "title": "Banco de Dados Principal", "description": "PostgreSQL de produção", "secret_value": "P@ssw0rd!Secure#2026$DB"},
@@ -110,13 +133,31 @@ class Command(BaseCommand):
         ]
 
         for sdata in secrets_data:
-            secret, created = Secret.objects.get_or_create(
+            secret = Secret.objects.filter(
                 vault=sdata["vault"],
                 title=sdata["title"],
-                defaults=sdata,
-            )
+            ).first()
+            created = secret is None
+            if created:
+                secret = Secret(
+                    vault=sdata["vault"],
+                    title=sdata["title"],
+                    description=sdata["description"],
+                )
+                secret.set_secret_value(sdata["secret_value"])
+                secret.save()
             status = "✅" if created else "⏩"
             self.stdout.write(f"  {status} Segredo: '{secret.title}' em '{secret.vault.name}'")
+
+        first_secret = Secret.objects.filter(vault=prod, title="Banco de Dados Principal").first()
+        if first_secret and not MfaApprovalRequest.objects.exists():
+            MfaApprovalRequest.objects.create(
+                secret=first_secret,
+                requested_by=joao,
+                requested_ip="192.168.1.105",
+                user_agent="SegredIME Mobile Web Seed",
+            )
+            self.stdout.write("  ✅ Solicitação MFA pendente criada")
 
         # ── Access Logs ────────────────────────────────
         if AccessLog.objects.count() == 0:

@@ -2,7 +2,7 @@ from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.middleware.csrf import get_token
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import AccessLog
@@ -14,6 +14,11 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+
+class IsAdminRole(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role == "admin")
 
 
 # ──────────────────────────────────────────────
@@ -127,8 +132,12 @@ def csrf_view(request):
 
 class UserListCreateView(generics.ListCreateAPIView):
     """List all users or create a new one."""
-    permission_classes = [AllowAny]
     queryset = User.objects.all()
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [IsAuthenticated()]
+        return [IsAdminRole()]
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -151,7 +160,7 @@ class UserListCreateView(generics.ListCreateAPIView):
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieve, update or delete a user."""
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminRole]
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -188,7 +197,7 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class AccessLogListView(generics.ListAPIView):
     """List all access logs with optional filtering."""
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminRole]
     serializer_class = AccessLogSerializer
 
     def get_queryset(self):
@@ -229,7 +238,7 @@ class AccessLogListView(generics.ListAPIView):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminRole])
 def access_log_stats_view(request):
     """Return aggregate stats for access logs."""
     from django.db.models import Count
