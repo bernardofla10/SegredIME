@@ -1,0 +1,175 @@
+{
+  "info": {
+    "name": "SegredIME Entregavel 07 - F3 MFA RBAC",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "vaultId", "value": "1" },
+    { "key": "secretId", "value": "1" },
+    { "key": "approvalRequestId", "value": "" },
+    { "key": "targetUserId", "value": "4" }
+  ],
+  "item": [
+    {
+      "name": "01 - CSRF",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/auth/csrf/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('csrfToken', data.csrfToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Login admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRFToken", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"joao.dias\",\n  \"password\": \"Admin@2026\"\n}"
+        },
+        "url": "{{baseUrl}}/api/auth/login/"
+      }
+    },
+    {
+      "name": "03 - Listar cofres acessiveis",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/vaults/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if (Array.isArray(data) && data.length) pm.collectionVariables.set('vaultId', data[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Compartilhar cofre com viewer",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRFToken", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user\": {{targetUserId}},\n  \"permission\": \"read\"\n}"
+        },
+        "url": "{{baseUrl}}/api/vaults/{{vaultId}}/members/"
+      }
+    },
+    {
+      "name": "05 - Listar segredos do cofre",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/secrets/?vault={{vaultId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if (Array.isArray(data) && data.length) pm.collectionVariables.set('secretId', data[0].id);",
+              "pm.test('Nao retorna secret_value no detalhe de lista', () => pm.expect(JSON.stringify(data)).to.not.include('secret_value'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Solicitar MFA para revelar segredo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRFToken", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{baseUrl}}/api/secrets/{{secretId}}/reveal/request/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('approvalRequestId', data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Aprovar no mobile simulado",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRFToken", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{baseUrl}}/api/mfa/requests/{{approvalRequestId}}/approve/"
+      }
+    },
+    {
+      "name": "08 - Revelar segredo com MFA aprovado",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRFToken", "value": "{{csrfToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"approval_request_id\": {{approvalRequestId}}\n}"
+        },
+        "url": "{{baseUrl}}/api/secrets/{{secretId}}/reveal/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "pm.test('Retorna secret_value apenas apos MFA', () => pm.expect(data.secret_value).to.be.a('string'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Auditoria F3",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/logs/?search=MFA"
+      }
+    }
+  ]
+}
