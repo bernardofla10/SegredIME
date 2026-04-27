@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Lock, FolderLock, Share2, FileText, Users, Shield, LogOut } from "lucide-react";
+import { Lock, FolderLock, Share2, FileText, Users, Shield, LogOut, Smartphone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function Sidebar() {
@@ -12,10 +12,11 @@ export function Sidebar() {
   const navigation = [
     { name: "Meus Cofres", href: "/", icon: FolderLock },
     { name: "Compartilhados", href: "/shared", icon: Share2 },
-    { name: "Auditoria", href: "/audit", icon: FileText },
-    { name: "Gestão de Usuários", href: "/users", icon: Users },
-    { name: "Configurações de Segurança", href: "/settings", icon: Shield },
-  ];
+    { name: "Mobile MFA", href: "/mobile", icon: Smartphone },
+    { name: "Auditoria", href: "/audit", icon: FileText, adminOnly: true },
+    { name: "Gestão de Usuários", href: "/users", icon: Users, adminOnly: true },
+    { name: "Configurações de Segurança", href: "/settings", icon: Shield, adminOnly: true },
+  ].filter((item) => !item.adminOnly || user?.role === "admin");
 
   const isActive = (href: string) => {
     if (href === "/") {
