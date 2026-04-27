@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Eye, Copy, Clock, Shield, CheckCircle, Loader2, Plus, Trash2 } from "lucide-react";
@@ -21,6 +21,7 @@ export default function SecretDetailPage() {
   const [revealStatus, setRevealStatus] = useState<RevealStatus>("hidden");
   const [revealedSecretValue, setRevealedSecretValue] = useState("");
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
+  const [approvalRequestId, setApprovalRequestId] = useState<number | null>(null);
   
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -30,7 +31,7 @@ export default function SecretDetailPage() {
     [secrets, selectedSecretId],
   );
 
-  const loadSecrets = async () => {
+  const loadSecrets = useCallback(async () => {
     try {
       const data = await api.listSecrets(vaultId);
       setSecrets(data);
@@ -45,7 +46,7 @@ export default function SecretDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [vaultId]);
 
   useEffect(() => {
     if (!vaultId) {
@@ -54,12 +55,13 @@ export default function SecretDetailPage() {
       return;
     }
     loadSecrets();
-  }, [vaultId]);
+  }, [loadSecrets, vaultId]);
 
   useEffect(() => {
     setRevealStatus("hidden");
     setRevealedSecretValue("");
     setSecurityMessage(null);
+    setApprovalRequestId(null);
   }, [selectedSecretId]);
 
   const getCSRFToken = async (): Promise<string> => {
@@ -73,26 +75,38 @@ export default function SecretDetailPage() {
     if (!selectedSecret) return;
 
     setRevealStatus("pending");
-    setSecurityMessage("Solicitacao enviada. Validando acesso e descriptografando no backend...");
+    setSecurityMessage("Solicitacao MFA enviada. Aprove ou negue no Mobile MFA.");
     try {
-      const detail = await api.getSecret(selectedSecret.id);
-      
-      // Post to the generic API to log the reveal
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const csrfToken = await getCSRFToken();
-      await fetch(`${API_URL}/api/secrets/${selectedSecret.id}/reveal/`, {
-        method: "POST",
-        headers: { "X-CSRFToken": csrfToken, "Content-Type": "application/json" },
-        credentials: "include"
-      });
+      const approval = await api.requestSecretReveal(selectedSecret.id);
+      setApprovalRequestId(approval.id);
 
-      // Approve payload
-      setTimeout(() => {
-        setRevealedSecretValue(detail.secret_value);
-        setRevealStatus("revealed");
-        setSecurityMessage("Segredo revelado com sucesso.");
-      }, 2000);
-      
+      const poll = window.setInterval(async () => {
+        try {
+          const current = await api.getMfaRequest(approval.id);
+          if (current.status === "pending") return;
+          window.clearInterval(poll);
+
+          if (current.status === "approved") {
+            const reveal = await api.revealSecret(selectedSecret.id, approval.id);
+            setRevealedSecretValue(reveal.secret_value);
+            setRevealStatus("revealed");
+            setSecurityMessage("MFA aprovado no mobile. Segredo revelado com sucesso.");
+            return;
+          }
+
+          setRevealStatus("error");
+          setSecurityMessage(
+            current.status === "denied"
+              ? "A solicitação MFA foi negada no mobile."
+              : "A solicitação MFA expirou. Envie uma nova solicitação.",
+          );
+        } catch (error) {
+          window.clearInterval(poll);
+          const message = error instanceof Error ? error.message : "Falha ao consultar MFA.";
+          setRevealStatus("error");
+          setSecurityMessage(message);
+        }
+      }, 2500);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha ao revelar segredo.";
       setRevealStatus("error");
@@ -181,17 +195,19 @@ export default function SecretDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-4">
-          <div className="bg-card border border-border rounded-lg p-5">
+              <div className="bg-card border border-border rounded-lg p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Segredos no Cofre</h3>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20"
-                title="Adicionar Novo Segredo"
-              >
-                <Plus className="w-4 h-4" />
-                Novo
-              </button>
+              {selectedSecret?.can_edit && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 text-sm px-3 py-1.5 bg-primary/10 text-primary rounded-lg hover:bg-primary/20"
+                  title="Adicionar Novo Segredo"
+                >
+                  <Plus className="w-4 h-4" />
+                  Novo
+                </button>
+              )}
             </div>
             <div className="space-y-2">
               {secrets.length === 0 && (
@@ -231,13 +247,15 @@ export default function SecretDetailPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button 
-                      onClick={handleDeleteSecret}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Excluir Segredo"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    {selectedSecret.can_edit && (
+                      <button 
+                        onClick={handleDeleteSecret}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir Segredo"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
                     <Shield className="w-8 h-8 text-primary" />
                   </div>
                 </div>
@@ -309,8 +327,11 @@ export default function SecretDetailPage() {
                     <div className="w-full px-4 py-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-center gap-3">
                       <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
                       <span className="text-yellow-700 font-semibold">
-                        Aguardando Aprovação no Mobile / Descriptografando...
+                        Aguardando Aprovação no Mobile MFA
                       </span>
+                      {approvalRequestId && (
+                        <span className="text-xs text-yellow-700">#{approvalRequestId}</span>
+                      )}
                     </div>
                   )}
 

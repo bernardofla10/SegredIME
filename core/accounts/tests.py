@@ -134,7 +134,9 @@ class AccessLogApiTests(APITestCase):
             password="Log@12345",
             first_name="Logger",
             last_name="Test",
+            role="admin",
         )
+        self.client.force_login(self.user)
         # Create some log entries
         AccessLog.log(self.user, "login", resource_type="system", resource_name="Login", status="success")
         AccessLog.log(self.user, "view_vault", resource_type="vault", resource_id=1, resource_name="Test Vault")

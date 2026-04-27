@@ -128,11 +128,12 @@ Para desenvolvedores que desejam iterar rapidamente no frontend ou backend:
 A interface administrativa em **Next.js** oferece os seguintes módulos:
 
 1.  **Dashboard de Cofres:** Visão geral de todos os cofres (Produção, APIs, SSL) e contagem de segredos.
-2.  **Visualização de Segredo:** Fluxo de revelação que consulta o backend para descriptografar `secret_value` sob demanda.
+2.  **Visualização de Segredo:** Fluxo de revelação protegido por MFA antes de descriptografar `secret_value`.
 3.  **Cofres Compartilhados:** Acesso granular a segredos compartilhados por outros membros da equipe.
 4.  **Trilha de Auditoria (Audit Trail):** Log imutável de quem acessou qual recurso, quando e de qual IP.
 5.  **Gestão de Usuários:** Controle de permissões (Admin, Editor, Viewer).
 6.  **Configurações de Segurança:** Políticas de expiração de senha, MFA e rotação de chaves.
+7.  **Mobile MFA Simulado:** Tela responsiva em `/mobile` para aprovar ou negar revelações críticas de segredos.
 
 ---
 
@@ -145,11 +146,15 @@ A interface administrativa em **Next.js** oferece os seguintes módulos:
 | `GET`  | `/api/auth/me/` | Recuperar perfil do logado atual |
 | `GET` | `/api/users/` | Listagem da tabela de Usuários e Roles |
 | `GET` | `/api/logs/` | Trilha Imutável da Auditoria (Acessos) |
-| `GET` | `/api/vaults/` | Lista todos os cofres lógicos |
-| `POST` | `/api/vaults/` | Cria um novo cofre |
+| `GET` | `/api/vaults/` | Lista cofres acessíveis ao usuário logado |
+| `POST` | `/api/vaults/` | Cria um novo cofre e torna o criador dono |
+| `GET` | `/api/vaults/{id}/members/` | Lista permissões granulares de um cofre |
+| `POST` | `/api/vaults/{id}/members/` | Compartilha um cofre com permissão `read`, `write` ou `owner` |
 | `GET` | `/api/secrets/?vault={vault_id}` | Lista segredos (metadados) filtrando por cofre |
-| `GET` | `/api/secrets/{id}/` | Detalha um segredo (inclui `username`, `url`, `notes`) |
-| `POST` | `/api/secrets/{id}/reveal/` | Inicia o fluxo de revelação de senha e registra no log de auditoria |
+| `GET` | `/api/secrets/{id}/` | Detalha metadados do segredo sem retornar `secret_value` |
+| `POST` | `/api/secrets/{id}/reveal/request/` | Cria solicitação MFA para revelar um segredo |
+| `POST` | `/api/secrets/{id}/reveal/` | Revela o segredo após aprovação MFA |
+| `GET` | `/api/mfa/requests/` | Lista solicitações MFA do usuário |
 | `PUT` | `/api/secrets/{id}/` | Atualiza valores de um segredo |
 | `DELETE` | `/api/secrets/{id}/` | Remove um segredo permanentemente |
 

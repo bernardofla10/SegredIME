@@ -46,6 +46,11 @@ class AccessLog(models.Model):
         ("copy_secret", "Cópia de Segredo"),
         ("share_vault", "Compartilhamento de Cofre"),
         ("permission_change", "Alteração de Permissão"),
+        ("access_denied", "Acesso Negado"),
+        ("mfa_requested", "MFA Solicitado"),
+        ("mfa_approved", "MFA Aprovado"),
+        ("mfa_denied", "MFA Negado"),
+        ("mfa_expired", "MFA Expirado"),
         ("failed_login", "Tentativa de Login Falha"),
         ("export_logs", "Exportação de Logs"),
     ]

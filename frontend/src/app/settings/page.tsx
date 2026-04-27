@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield, Lock, Smartphone, Key, Bell, Activity, ChevronRight } from "lucide-react";
+import { Shield, Lock, Key, Bell, Activity, ChevronRight } from "lucide-react";
 
 export default function SecuritySettingsPage() {
   return (
