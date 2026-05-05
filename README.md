@@ -15,7 +15,7 @@ O projeto segue uma arquitetura **API-First**, garantindo integração fluida en
 
 *   **Backend (Core):** API RESTful em **Python/Django** para orquestração, criptografia e lógica de RBAC.
 *   **Frontend Web (Admin):** Interface administrativa moderna em **Next.js 15+** e **Tailwind v4**.
-*   **Mobile (MFA):** Aplicativo híbrido em **React Native** para autorização de acessos críticos e segundo fator de autenticação em tempo real (Planejado).
+*   **Mobile (MFA):** Aplicativo híbrido em **React Native (Expo)** para autorização de acessos críticos e segundo fator de autenticação em tempo real, consumindo a API com autenticação baseada em Token.
 *   **Infraestrutura:** Ecossistema integralmente conteinerizado via **Docker** e **Docker Compose**, assegurando reprodutibilidade do ambiente de desenvolvimento e deploy.
 
 ---
@@ -55,7 +55,7 @@ SegredIME/
 ├── frontend/         # Interface web administrativa em Next.js (App Router)
 │   ├── src/app       # Rotas e páginas da aplicação
 │   └── src/components # Base de componentes UI (Radix/Shadcn)
-├── mobile/           # Aplicativo de segurança e MFA (planejado)
+├── mobile/           # Aplicativo mobile em React Native (Expo) para autenticação e aprovações MFA
 ├── database/         # Scripts de configuração e persistência do PostgreSQL
 └── docs/             # Documentação complementar e artefatos auxiliares de validação
 ```
@@ -123,6 +123,27 @@ Para desenvolvedores que desejam iterar rapidamente no frontend ou backend:
 
 ---
 
+### 3. Executando o App Mobile (Expo Go)
+Para rodar o aplicativo mobile de aprovações MFA de forma integrada ao backend:
+
+1. Certifique-se de que o backend (via Docker ou local) está rodando e acessível na sua rede.
+2. Descubra o IP da sua máquina na rede local Wi-Fi (ex: no Windows, use `ipconfig`).
+3. Edite o arquivo `mobile/src/services/api.ts` e atualize a constante `API_URL` com o seu IP da rede:
+   ```typescript
+   const API_URL = "http://SEU_IP_AQUI:8000";
+   ```
+4. Inicie o servidor do Expo:
+   ```bash
+   cd mobile
+   npm install
+   npx expo start
+   ```
+5. Instale o app **Expo Go** no seu celular (Android ou iOS).
+6. Certifique-se de que o celular está na **mesma rede Wi-Fi** do computador.
+7. Escaneie o QR Code exibido no terminal do Expo para abrir o SegredIME Mobile e realizar o login.
+
+---
+
 ## ✨ Funcionalidades do Frontend Administativo
 
 A interface administrativa em **Next.js** oferece os seguintes módulos:
@@ -142,6 +163,8 @@ A interface administrativa em **Next.js** oferece os seguintes módulos:
 | Método | Endpoint | Descrição |
 | :--- | :--- | :--- |
 | `POST` | `/api/auth/login/` | Autenticação via Session/CSRF |
+| `POST` | `/api/auth/token/login/` | Autenticação via Token para o Mobile |
+| `POST` | `/api/auth/token/logout/` | Logout e invalidação do Token para o Mobile |
 | `POST` | `/api/auth/register/` | Criação de novo usuário / perfil |
 | `GET`  | `/api/auth/me/` | Recuperar perfil do logado atual |
 | `GET` | `/api/users/` | Listagem da tabela de Usuários e Roles |

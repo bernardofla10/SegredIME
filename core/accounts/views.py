@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.middleware.csrf import get_token
 from rest_framework import generics, status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -124,6 +125,72 @@ def me_view(request):
 def csrf_view(request):
     """Return a CSRF token for session-based auth."""
     return Response({"csrfToken": get_token(request)})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def token_login_view(request):
+    """Authenticate and return a DRF auth token for mobile clients."""
+    serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    user = authenticate(
+        request,
+        username=serializer.validated_data["username"],
+        password=serializer.validated_data["password"],
+    )
+
+    if user is None:
+        AccessLog.log(
+            user=None,
+            action="failed_login",
+            request=request,
+            user_display_name=serializer.validated_data["username"],
+            resource_type="system",
+            resource_name="Mobile Login",
+            status="error",
+            details=f"Tentativa de login mobile falha para '{serializer.validated_data['username']}'",
+        )
+        return Response(
+            {"detail": "Credenciais inválidas."},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
+
+    token, _ = Token.objects.get_or_create(user=user)
+
+    AccessLog.log(
+        user=user,
+        action="login",
+        request=request,
+        resource_type="system",
+        resource_name="Mobile Login",
+        status="success",
+        details="Login mobile realizado com sucesso (token)",
+    )
+
+    return Response({
+        "token": token.key,
+        "user": UserSerializer(user).data,
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def token_logout_view(request):
+    """Invalidate the current user's auth token (mobile logout)."""
+    if hasattr(request.user, "auth_token"):
+        request.user.auth_token.delete()
+
+    AccessLog.log(
+        user=request.user,
+        action="logout",
+        request=request,
+        resource_type="system",
+        resource_name="Mobile Logout",
+        status="success",
+        details="Token mobile invalidado",
+    )
+    return Response({"detail": "Logout mobile realizado com sucesso."})
 
 
 # ──────────────────────────────────────────────
