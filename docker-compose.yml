@@ -38,6 +38,7 @@ services:
       SECRET_KEY: segredime-dev-secret-key
       SECRETS_ENCRYPTION_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       DEBUG: "1"
+      ALLOWED_HOSTS: "*"
     ports:
       - "8000:8000"
     volumes:
