@@ -47,7 +47,7 @@ echo "   ✅ Permissão Docker OK"
 # ── 2. Verificar se portas estão livres ──
 echo ""
 echo "🔍 Verificando portas do Grupo 02..."
-PORTS=(8011 8012 8013)
+PORTS=(8013 8014 8015)
 for PORT in "${PORTS[@]}"; do
     if docker ps --format '{{.Ports}}' | grep -q ":${PORT}->" 2>/dev/null; then
         echo "   ⚠️  Porta $PORT já está em uso por outro container!"
