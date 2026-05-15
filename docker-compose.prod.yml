@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-segredime_password}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
     ports:
-      - "${POSTGRES_PORT:-8013}:5432"
+      - "${POSTGRES_PORT:-8015}:5432"
     volumes:
       - grupo02_postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -44,7 +44,7 @@ services:
       DEBUG: "0"
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-*}
     ports:
-      - "${BACKEND_PORT:-8012}:8000"
+      - "${BACKEND_PORT:-8014}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,12 +62,12 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8012}
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8014}
     container_name: grupo02_frontend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8012}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8014}
     ports:
-      - "${FRONTEND_PORT:-8011}:3000"
+      - "${FRONTEND_PORT:-8013}:3000"
     depends_on:
       backend:
         condition: service_healthy
