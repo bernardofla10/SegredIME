@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 node_modules/
 mobile/.expo/
+.env
+.env.prod
+.env.local
+*.log
+db.sqlite3
